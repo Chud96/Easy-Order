@@ -3,9 +3,9 @@ export const STANDARD_FLASHING_DESIGNS = [
     id: "std-side-apron-corro",
     name: "Side Apron Corro",
     folds: [
-      { length: 80, angle: 90 },
-      { length: 300, angle: 0 },
-      { length: 63, angle: 288 },
+      { length: 100, angle: 270 },
+      { length: 165, angle: 0 },
+      { length: 10, angle: 330 },
     ],
   },
   {
