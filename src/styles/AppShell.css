@@ -1,0 +1,216 @@
+.app-shell {
+  min-height: 100vh;
+  background: #f3f6fb;
+}
+
+.app-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #152f61;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+}
+
+.app-shell-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.app-shell-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-shell-actions button {
+  border: none;
+  border-radius: 6px;
+  background: #e5edff;
+  color: #203760;
+  font-weight: 700;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.app-shell-user {
+  font-size: 12px;
+  color: #dce6ff;
+}
+
+.admin-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px 16px 0;
+}
+
+.admin-card {
+  background: #fff;
+  border: 1px solid #d8e1ef;
+  border-radius: 10px;
+  padding: 12px;
+  color: #17253c;
+}
+
+.admin-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #17253c;
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 8px;
+}
+
+.admin-form-row input,
+.admin-form-row select {
+  border: 1px solid #cad5e8;
+  border-radius: 7px;
+  padding: 8px;
+  background: #ffffff;
+  color: #17253c;
+}
+
+.admin-form-row button {
+  border: none;
+  border-radius: 7px;
+  background: #2351be;
+  color: #fff;
+  font-weight: 700;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.admin-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e1e7f3;
+  border-radius: 7px;
+  padding: 8px;
+  font-size: 12px;
+  background: #fafcff;
+  color: #17253c;
+}
+
+.admin-list button {
+  border: none;
+  border-radius: 6px;
+  background: #fff1f3;
+  color: #8a2a3a;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .admin-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.workflow-tabs {
+  margin: 10px 16px 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  background: #e9eff7;
+  border: 1px solid #cdd8e9;
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.workflow-tabs button {
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #51627f;
+  font-weight: 700;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.workflow-tabs button.active {
+  background: #ffffff;
+  color: #17253c;
+  border: 1px solid #d3ddec;
+}
+
+.workflow-body {
+  padding-bottom: 20px;
+}
+
+.order-home-card {
+  max-width: 680px;
+  margin: 18px auto 0;
+  background: #ffffff;
+  border: 1px solid #d6dfec;
+  border-radius: 14px;
+  padding: 20px;
+  color: #17253c;
+}
+
+.order-home-card h2 {
+  margin: 0 0 4px;
+  font-size: 28px;
+  color: #17253c;
+}
+
+.order-home-card p {
+  margin: 0;
+  color: #5f6f89;
+}
+
+.order-home-actions {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.order-home-actions button {
+  border: 1px solid #ccd8eb;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 700;
+  background: #f4f7fd;
+  color: #233755;
+  cursor: pointer;
+}
+
+.order-home-actions button.primary {
+  background: #1f4eae;
+  border-color: #1f4eae;
+  color: #ffffff;
+}
+
+@media (max-width: 800px) {
+  .workflow-tabs {
+    grid-template-columns: 1fr;
+    border-radius: 12px;
+  }
+
+  .order-home-actions {
+    grid-template-columns: 1fr;
+  }
+}
