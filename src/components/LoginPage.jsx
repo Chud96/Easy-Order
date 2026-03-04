@@ -2,15 +2,15 @@ import { useState } from "react";
 import "../styles/LoginPage.css";
 
 export default function LoginPage({ onLogin }) {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const ok = onLogin(username.trim(), password);
+    const ok = await onLogin(email.trim(), password);
     if (!ok) {
-      setError("Invalid username or password.");
+      setError("Invalid email or password.");
       return;
     }
     setError("");
@@ -22,13 +22,13 @@ export default function LoginPage({ onLogin }) {
         <h1>Roofing App Login</h1>
         <p>Sign in to manage orders and suppliers.</p>
 
-        <label htmlFor="username">Username</label>
+        <label htmlFor="email">Email</label>
         <input
-          id="username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Username"
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
         />
 
         <label htmlFor="password">Password</label>
@@ -43,7 +43,7 @@ export default function LoginPage({ onLogin }) {
         {error && <div className="login-error">{error}</div>}
 
         <button type="submit">Login</button>
-        <div className="login-help">Default admin: username `admin`, password `admin123`</div>
+        <div className="login-help">Use your Supabase Auth email and password.</div>
       </form>
     </div>
   );

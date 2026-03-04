@@ -3,20 +3,11 @@ import Home from "./components/Home";
 import FlashingBuilder from "./components/FlashingBuilder";
 import LoginPage from "./components/LoginPage";
 import OrderSummary from "./components/OrderSummary";
+import { supabase } from "./lib/supabase";
 import "./styles/AppShell.css";
 
-const USERS_STORAGE_KEY = "roofing-app.users.v1";
-const SUPPLIERS_STORAGE_KEY = "roofing-app.suppliers.v1";
-const SESSION_STORAGE_KEY = "roofing-app.session.v1";
 const SAVED_FLASHING_ORDERS_STORAGE_KEY = "roofing-app.saved-orders.v1";
 const SAVED_ORDER_SESSIONS_STORAGE_KEY = "roofing-app.saved-order-sessions.v1";
-
-const DEFAULT_ADMIN = {
-  id: "user-admin",
-  username: "admin",
-  password: "admin123",
-  role: "admin",
-};
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -78,17 +69,8 @@ const DEFAULT_ORDER_INFO = {
 };
 
 export default function App() {
-  const [users, setUsers] = useState(() => {
-    const existing = readJson(USERS_STORAGE_KEY, []);
-    if (existing.length > 0) {
-      return existing;
-    }
-    writeJson(USERS_STORAGE_KEY, [DEFAULT_ADMIN]);
-    return [DEFAULT_ADMIN];
-  });
-
-  const [suppliers, setSuppliers] = useState(() => readJson(SUPPLIERS_STORAGE_KEY, []));
-  const [currentUser, setCurrentUser] = useState(() => readJson(SESSION_STORAGE_KEY, null));
+  const [suppliers, setSuppliers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showOrderHome, setShowOrderHome] = useState(true);
   const [activeTab, setActiveTab] = useState(TAB_KEYS.STANDARD);
@@ -101,76 +83,118 @@ export default function App() {
     readJson(SAVED_ORDER_SESSIONS_STORAGE_KEY, [])
   );
 
-  const [newUser, setNewUser] = useState({ username: "", password: "", role: "staff" });
   const [newSupplier, setNewSupplier] = useState({ name: "", email: "" });
 
-  const handleLogin = (username, password) => {
-    const found = users.find((item) => item.username === username && item.password === password);
-    if (!found) {
-      return false;
-    }
-    setCurrentUser(found);
-    writeJson(SESSION_STORAGE_KEY, found);
-    return true;
+  useEffect(() => {
+    let isMounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (isMounted) {
+        setCurrentUser(data.session?.user || null);
+      }
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || null);
+      if (!session?.user) {
+        setSuppliers([]);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogin = async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return !error;
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setShowAdminPanel(false);
   };
 
-  const saveUsers = (next) => {
-    setUsers(next);
-    writeJson(USERS_STORAGE_KEY, next);
-  };
-
-  const saveSuppliers = (next) => {
-    setSuppliers(next);
-    writeJson(SUPPLIERS_STORAGE_KEY, next);
-  };
-
-  const addUser = () => {
-    const username = newUser.username.trim();
-    const password = newUser.password;
-    if (!username || !password) {
-      alert("Username and password are required.");
-      return;
-    }
-    if (users.some((item) => item.username.toLowerCase() === username.toLowerCase())) {
-      alert("Username already exists.");
-      return;
-    }
-    const next = [
-      ...users,
-      { id: `user-${Date.now()}`, username, password, role: newUser.role || "staff" },
-    ];
-    saveUsers(next);
-    setNewUser({ username: "", password: "", role: "staff" });
-  };
-
-  const deleteUser = (id) => {
-    if (id === DEFAULT_ADMIN.id) {
-      alert("Default admin cannot be deleted.");
-      return;
-    }
-    saveUsers(users.filter((item) => item.id !== id));
-  };
-
-  const addSupplier = () => {
+  const addSupplier = async () => {
     const name = newSupplier.name.trim();
     const email = newSupplier.email.trim();
     if (!name || !email) {
       alert("Supplier name and email are required.");
       return;
     }
-    const next = [...suppliers, { id: `supplier-${Date.now()}`, name, email }];
-    saveSuppliers(next);
+
+    if (!currentUser?.id) {
+      alert("Please log in again.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("suppliers")
+      .insert([{ owner_id: currentUser.id, name, email }])
+      .select("id, name, email")
+      .single();
+
+    if (error) {
+      alert(`Could not save supplier: ${error.message}`);
+      return;
+    }
+
+    setSuppliers((prev) => [...prev, data]);
     setNewSupplier({ name: "", email: "" });
   };
 
-  const deleteSupplier = (id) => {
-    saveSuppliers(suppliers.filter((item) => item.id !== id));
+  const deleteSupplier = async (id) => {
+    if (!currentUser?.id) {
+      return;
+    }
+    const { error } = await supabase
+      .from("suppliers")
+      .delete()
+      .eq("id", id)
+      .eq("owner_id", currentUser.id);
+    if (error) {
+      alert(`Could not delete supplier: ${error.message}`);
+      return;
+    }
+    setSuppliers((prev) => prev.filter((item) => item.id !== id));
   };
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select("id, name, email")
+        .eq("owner_id", currentUser.id)
+        .order("created_at", { ascending: true });
+
+      if (!active) {
+        return;
+      }
+
+      if (error) {
+        console.warn("Could not load suppliers", error);
+        setSuppliers([]);
+        return;
+      }
+
+      setSuppliers(data || []);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id]);
 
   const handleStartOrder = (info) => {
     if (info?.standardSelections) {
@@ -279,52 +303,14 @@ export default function App() {
         <header className="app-shell-header">
           <div className="app-shell-title">Roofing App</div>
           <div className="app-shell-actions">
-            <span className="app-shell-user">Signed in: {currentUser.username}</span>
-            {currentUser.role === "admin" && (
-              <button onClick={() => setShowAdminPanel((v) => !v)}>Manage Users/Suppliers</button>
-            )}
+            <span className="app-shell-user">Signed in: {currentUser.email}</span>
+            <button onClick={() => setShowAdminPanel((v) => !v)}>Manage Suppliers</button>
             <button onClick={handleLogout}>Logout</button>
           </div>
         </header>
 
-        {showAdminPanel && currentUser.role === "admin" && (
+        {showAdminPanel && (
           <section className="admin-panel">
-            <div className="admin-card">
-              <h3>Users</h3>
-              <div className="admin-form-row">
-                <input
-                  type="text"
-                  placeholder="Username"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser((prev) => ({ ...prev, username: e.target.value }))}
-                />
-                <input
-                  type="text"
-                  placeholder="Password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser((prev) => ({ ...prev, password: e.target.value }))}
-                />
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value }))}
-                >
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <button onClick={addUser}>Add User</button>
-              </div>
-              <ul className="admin-list">
-                {users.map((user) => (
-                  <li key={user.id}>
-                    <span>
-                      {user.username} ({user.role})
-                    </span>
-                    <button onClick={() => deleteUser(user.id)}>Delete</button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             <div className="admin-card">
               <h3>Suppliers</h3>
               <div className="admin-form-row">
