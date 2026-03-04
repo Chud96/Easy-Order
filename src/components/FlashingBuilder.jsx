@@ -37,7 +37,12 @@ function pointsToFolds(points) {
   return folds;
 }
 
-export default function FlashingBuilder({ orderInfo, savedOrders: externalSavedOrders, onSavedOrdersChange }) {
+export default function FlashingBuilder({
+  orderInfo,
+  savedOrders: externalSavedOrders,
+  onSavedOrdersChange,
+  standardDesigns,
+}) {
   const drawSurfaceRef = useRef(null);
 
   const [folds, setFolds] = useState([]);
@@ -49,7 +54,11 @@ export default function FlashingBuilder({ orderInfo, savedOrders: externalSavedO
   const [confirmed, setConfirmed] = useState(false);
   const [overallNotes, setOverallNotes] = useState("");
 
-  const [selectedDesignId, setSelectedDesignId] = useState(STANDARD_FLASHING_DESIGNS[0]?.id || "");
+  const baseDesigns =
+    Array.isArray(standardDesigns) && standardDesigns.length > 0
+      ? standardDesigns
+      : STANDARD_FLASHING_DESIGNS;
+  const [selectedDesignId, setSelectedDesignId] = useState(baseDesigns[0]?.id || "");
   const [customPresetName, setCustomPresetName] = useState("");
   const [customDesigns, setCustomDesigns] = useState(() => {
     try {
@@ -79,11 +88,11 @@ export default function FlashingBuilder({ orderInfo, savedOrders: externalSavedO
   const savedOrders = externalSavedOrders ?? localSavedOrders;
   const setSavedOrders = onSavedOrdersChange || setLocalSavedOrders;
 
-  const allDesigns = useMemo(
-    () => [...STANDARD_FLASHING_DESIGNS, ...customDesigns],
-    [customDesigns]
-  );
-  const selectedDesign = allDesigns.find((item) => item.id === selectedDesignId);
+  const allDesigns = useMemo(() => [...baseDesigns, ...customDesigns], [baseDesigns, customDesigns]);
+  const resolvedSelectedDesignId = allDesigns.some((item) => item.id === selectedDesignId)
+    ? selectedDesignId
+    : allDesigns[0]?.id || "";
+  const selectedDesign = allDesigns.find((item) => item.id === resolvedSelectedDesignId);
   const isSelectedCustomDesign = selectedDesign?.id?.startsWith("custom-");
 
   useEffect(() => {
@@ -185,7 +194,7 @@ export default function FlashingBuilder({ orderInfo, savedOrders: externalSavedO
   };
 
   const applyStandardDesign = () => {
-    const design = allDesigns.find((item) => item.id === selectedDesignId);
+    const design = allDesigns.find((item) => item.id === resolvedSelectedDesignId);
     if (!design) {
       return;
     }
@@ -226,7 +235,7 @@ export default function FlashingBuilder({ orderInfo, savedOrders: externalSavedO
     }
     setCustomDesigns((prev) =>
       prev.map((item) =>
-        item.id === selectedDesignId ? { ...item, name, folds: copyFolds(folds) } : item
+        item.id === resolvedSelectedDesignId ? { ...item, name, folds: copyFolds(folds) } : item
       )
     );
   };
@@ -235,9 +244,9 @@ export default function FlashingBuilder({ orderInfo, savedOrders: externalSavedO
     if (!isSelectedCustomDesign) {
       return;
     }
-    const next = customDesigns.filter((item) => item.id !== selectedDesignId);
+    const next = customDesigns.filter((item) => item.id !== resolvedSelectedDesignId);
     setCustomDesigns(next);
-    setSelectedDesignId(STANDARD_FLASHING_DESIGNS[0]?.id || "");
+    setSelectedDesignId(baseDesigns[0]?.id || "");
     setCustomPresetName("");
   };
 
@@ -361,7 +370,7 @@ export default function FlashingBuilder({ orderInfo, savedOrders: externalSavedO
               <label htmlFor="standard-design">Standard design catalog</label>
               <select
                 id="standard-design"
-                value={selectedDesignId}
+                value={resolvedSelectedDesignId}
                 onChange={(e) => {
                   const nextId = e.target.value;
                   setSelectedDesignId(nextId);

@@ -4,6 +4,7 @@ import FlashingBuilder from "./components/FlashingBuilder";
 import LoginPage from "./components/LoginPage";
 import OrderSummary from "./components/OrderSummary";
 import { supabase } from "./lib/supabase";
+import { STANDARD_FLASHING_DESIGNS } from "./data/standardFlashings";
 import "./styles/AppShell.css";
 
 const SAVED_FLASHING_ORDERS_STORAGE_KEY = "roofing-app.saved-orders.v1";
@@ -84,6 +85,28 @@ export default function App() {
   );
 
   const [newSupplier, setNewSupplier] = useState({ name: "", email: "" });
+  const [standardFlashingDesigns, setStandardFlashingDesigns] = useState(
+    STANDARD_FLASHING_DESIGNS
+  );
+  const [newStandardFlashing, setNewStandardFlashing] = useState({
+    name: "",
+    foldsJson: '[{"length":100,"angle":0}]',
+  });
+
+  const parseFoldsJson = (raw) => {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      throw new Error("Folds JSON must be an array.");
+    }
+    const folds = parsed.map((fold) => ({
+      length: Number(fold.length),
+      angle: Number(fold.angle),
+    }));
+    if (folds.some((fold) => !Number.isFinite(fold.length) || !Number.isFinite(fold.angle))) {
+      throw new Error("Each fold must include numeric length and angle.");
+    }
+    return folds;
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -98,6 +121,7 @@ export default function App() {
       setCurrentUser(session?.user || null);
       if (!session?.user) {
         setSuppliers([]);
+        setStandardFlashingDesigns(STANDARD_FLASHING_DESIGNS);
       }
     });
 
@@ -119,6 +143,8 @@ export default function App() {
     await supabase.auth.signOut();
     setCurrentUser(null);
     setShowAdminPanel(false);
+    setSuppliers([]);
+    setStandardFlashingDesigns(STANDARD_FLASHING_DESIGNS);
   };
 
   const addSupplier = async () => {
@@ -195,6 +221,112 @@ export default function App() {
       active = false;
     };
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("standard_flashings")
+        .select("id, name, folds_json")
+        .eq("owner_id", currentUser.id)
+        .order("created_at", { ascending: true });
+
+      if (!active) {
+        return;
+      }
+
+      if (error) {
+        console.warn("Could not load standard flashings from DB, using file defaults.", error);
+        setStandardFlashingDesigns(STANDARD_FLASHING_DESIGNS);
+        return;
+      }
+
+      const dbDesigns = (data || []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        folds: Array.isArray(row.folds_json) ? row.folds_json : [],
+      }));
+
+      setStandardFlashingDesigns(
+        dbDesigns.length > 0 ? dbDesigns : STANDARD_FLASHING_DESIGNS
+      );
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id]);
+
+  const addStandardFlashing = async () => {
+    const name = newStandardFlashing.name.trim();
+    if (!name) {
+      alert("Design name is required.");
+      return;
+    }
+    if (!currentUser?.id) {
+      alert("Please log in again.");
+      return;
+    }
+
+    let folds;
+    try {
+      folds = parseFoldsJson(newStandardFlashing.foldsJson);
+    } catch (error) {
+      alert(error.message);
+      return;
+    }
+
+    const payload = {
+      owner_id: currentUser.id,
+      name,
+      folds_json: folds,
+    };
+
+    const { data, error } = await supabase
+      .from("standard_flashings")
+      .insert([payload])
+      .select("id, name, folds_json")
+      .single();
+
+    if (error) {
+      alert(`Could not add standard flashing: ${error.message}`);
+      return;
+    }
+
+    setStandardFlashingDesigns((prev) => [
+      ...prev,
+      {
+        id: data.id,
+        name: data.name,
+        folds: Array.isArray(data.folds_json) ? data.folds_json : [],
+      },
+    ]);
+    setNewStandardFlashing({
+      name: "",
+      foldsJson: '[{"length":100,"angle":0}]',
+    });
+  };
+
+  const deleteStandardFlashing = async (id) => {
+    if (!currentUser?.id) {
+      return;
+    }
+    const { error } = await supabase
+      .from("standard_flashings")
+      .delete()
+      .eq("id", id)
+      .eq("owner_id", currentUser.id);
+
+    if (error) {
+      alert(`Could not delete standard flashing: ${error.message}`);
+      return;
+    }
+    setStandardFlashingDesigns((prev) => prev.filter((item) => item.id !== id));
+  };
 
   const handleStartOrder = (info) => {
     if (info?.standardSelections) {
@@ -304,7 +436,7 @@ export default function App() {
           <div className="app-shell-title">Roofing App</div>
           <div className="app-shell-actions">
             <span className="app-shell-user">Signed in: {currentUser.email}</span>
-            <button onClick={() => setShowAdminPanel((v) => !v)}>Manage Suppliers</button>
+            <button onClick={() => setShowAdminPanel((v) => !v)}>Manage Data</button>
             <button onClick={handleLogout}>Logout</button>
           </div>
         </header>
@@ -335,6 +467,47 @@ export default function App() {
                       {supplier.name} - {supplier.email}
                     </span>
                     <button onClick={() => deleteSupplier(supplier.id)}>Delete</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="admin-card">
+              <h3>Standard Flashings</h3>
+              <div className="admin-form-vertical">
+                <input
+                  type="text"
+                  placeholder="Design name"
+                  value={newStandardFlashing.name}
+                  onChange={(e) =>
+                    setNewStandardFlashing((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                />
+                <textarea
+                  rows={5}
+                  value={newStandardFlashing.foldsJson}
+                  onChange={(e) =>
+                    setNewStandardFlashing((prev) => ({ ...prev, foldsJson: e.target.value }))
+                  }
+                  placeholder='[{"length":100,"angle":0},{"length":80,"angle":270}]'
+                />
+                <button onClick={addStandardFlashing}>Add Standard Flashing</button>
+              </div>
+              <ul className="admin-list">
+                {standardFlashingDesigns.map((design) => (
+                  <li key={design.id}>
+                    <span>{design.name}</span>
+                    <button
+                      onClick={() => deleteStandardFlashing(design.id)}
+                      disabled={String(design.id).startsWith("std-")}
+                      title={
+                        String(design.id).startsWith("std-")
+                          ? "File default design"
+                          : "Delete standard flashing"
+                      }
+                    >
+                      Delete
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -395,6 +568,7 @@ export default function App() {
                   orderInfo={orderInfo}
                   savedOrders={flashingOrders}
                   onSavedOrdersChange={setFlashingOrders}
+                  standardDesigns={standardFlashingDesigns}
                 />
               )}
               {activeTab === TAB_KEYS.SUMMARY && (

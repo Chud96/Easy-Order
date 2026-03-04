@@ -25,6 +25,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .app-shell-actions button {
@@ -88,6 +90,32 @@
   cursor: pointer;
 }
 
+.admin-form-vertical {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-form-vertical input,
+.admin-form-vertical textarea {
+  border: 1px solid #cad5e8;
+  border-radius: 7px;
+  padding: 8px;
+  background: #ffffff;
+  color: #17253c;
+  font-size: 13px;
+}
+
+.admin-form-vertical button {
+  border: none;
+  border-radius: 7px;
+  background: #2351be;
+  color: #fff;
+  font-weight: 700;
+  padding: 8px 10px;
+  cursor: pointer;
+  justify-self: start;
+}
+
 .admin-list {
   margin: 10px 0 0;
   padding: 0;
@@ -131,16 +159,18 @@
 
 .workflow-tabs {
   margin: 10px 16px 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
   background: #e9eff7;
   border: 1px solid #cdd8e9;
   border-radius: 999px;
   padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .workflow-tabs button {
+  flex: 1 0 180px;
   border: none;
   border-radius: 999px;
   background: transparent;
@@ -204,9 +234,20 @@
   color: #ffffff;
 }
 
+@media (max-width: 920px) {
+  .app-shell-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .app-shell-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 800px) {
   .workflow-tabs {
-    grid-template-columns: 1fr;
     border-radius: 12px;
   }
 

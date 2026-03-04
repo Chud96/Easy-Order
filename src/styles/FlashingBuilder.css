@@ -28,6 +28,7 @@
 .fb-toolbar {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 10px;
 }
 
@@ -53,7 +54,6 @@
 .fb-btn-warning {
   background: #f6b500;
   color: #111827;
-  margin-left: auto;
 }
 
 .fb-btn-muted {
@@ -300,12 +300,26 @@
 }
 
 @media (max-width: 760px) {
+  .flashing-builder-page {
+    padding: 0 8px;
+  }
+
+  .fb-section {
+    border-radius: 14px;
+    padding: 10px;
+  }
+
+  .fb-btn {
+    width: 100%;
+  }
+
   .fb-toolbar {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .fb-btn-warning {
-    margin-left: 0;
+    grid-column: 1 / -1;
   }
 
   .fb-design-row,
