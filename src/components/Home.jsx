@@ -7,6 +7,7 @@ const QTY_ONLY_CATEGORIES = new Set([
   "Gutter Accessories",
   "Battens",
   "Insulation",
+  "Other",
 ]);
 const ORDER_DRAFTS_STORAGE_KEY = "roofing-app.order-drafts.v1";
 const createLineId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -69,19 +70,13 @@ function buildDefaultSelectedItemByCategoryAndSubcategory() {
 }
 
 export default function Home({
-  onStartOrder,
-  suppliers = [],
   embedded = false,
-  orderInfo: externalOrderInfo,
-  onOrderInfoChange,
   standardSelections = [],
   onStandardSelectionsChange,
 }) {
   const [view, setView] = useState(embedded ? "newOrder" : "menu");
 
-  const [localOrderInfo, setLocalOrderInfo] = useState(DEFAULT_ORDER_INFO);
-  const orderInfo = externalOrderInfo || localOrderInfo;
-  const setOrderInfo = onOrderInfoChange || setLocalOrderInfo;
+  const [, setOrderInfo] = useState(DEFAULT_ORDER_INFO);
 
   const [selectedLines, setSelectedLines] = useState(() =>
     (standardSelections || []).map((item) => ({
@@ -110,8 +105,6 @@ export default function Home({
     }
   });
 
-  const selectedSupplierId = orderInfo.supplierId || suppliers[0]?.id || "";
-
   const setConfirmedSelections = (nextSelections) => {
     if (onStandardSelectionsChange) {
       onStandardSelectionsChange(nextSelections);
@@ -136,14 +129,15 @@ export default function Home({
   };
 
   const addProductLine = (category, subcategory, item) => {
-    if (!item) {
+    const normalizedItem = (item || "").trim();
+    if (!normalizedItem) {
       return;
     }
     setSelectionConfirmed(false);
     setConfirmedSelections([]);
     setSelectedLines((prev) => [
       ...prev,
-      { id: createLineId(), category, subcategory, item, qty: "", length: "" },
+      { id: createLineId(), category, subcategory, item: normalizedItem, qty: "", length: "" },
     ]);
   };
 
@@ -224,20 +218,6 @@ export default function Home({
     }
   };
 
-  const handleSaveDraft = () => {
-    const draft = {
-      id: createLineId(),
-      savedAt: Date.now(),
-      orderInfo,
-      selectedLines,
-      selectedSubcategoryByCategory,
-      selectedItemByCategoryAndSubcategory,
-      selectionConfirmed,
-    };
-    saveDrafts([draft, ...savedDrafts]);
-    alert("Order draft saved.");
-  };
-
   const handleLoadDraft = (draftId) => {
     const draft = savedDrafts.find((item) => item.id === draftId);
     if (!draft) {
@@ -281,16 +261,6 @@ export default function Home({
 
   const handleDeleteDraft = (draftId) => {
     saveDrafts(savedDrafts.filter((draft) => draft.id !== draftId));
-  };
-
-  const handleStart = () => {
-    onStartOrder({
-      ...orderInfo,
-      supplier: suppliers.find((item) => item.id === selectedSupplierId) || null,
-      standardSelections: completedSelections,
-      standardCategory: completedSelections[0]?.category || "",
-      standardItem: completedSelections[0]?.item || "",
-    });
   };
 
   if (!embedded && view === "menu") {
@@ -346,6 +316,7 @@ export default function Home({
               const items = subcategories.find((s) => s.name === selectedSubcategory)?.items || [];
               const itemKey = makeCategorySubKey(category, selectedSubcategory);
               const selectedItem = selectedItemByCategoryAndSubcategory[itemKey] || items[0] || "";
+              const isOtherCategory = category === "Other";
 
               const linesForCategory = selectedLines.filter((line) => line.category === category);
 
@@ -382,28 +353,52 @@ export default function Home({
                     </select>
                   )}
 
-                  <select
-                    className="item-select"
-                    value={selectedItem}
-                    onChange={(e) =>
-                      setSelectedItemByCategoryAndSubcategory((prev) => ({
-                        ...prev,
-                        [itemKey]: e.target.value,
-                      }))
-                    }
-                    disabled={selectionConfirmed}
-                  >
-                    {items.map((itemName) => (
-                      <option key={itemName} value={itemName}>
-                        {itemName}
-                      </option>
-                    ))}
-                  </select>
+                  {isOtherCategory ? (
+                    <input
+                      className="item-select"
+                      type="text"
+                      value={selectedItem}
+                      placeholder="Type item description"
+                      onChange={(e) =>
+                        setSelectedItemByCategoryAndSubcategory((prev) => ({
+                          ...prev,
+                          [itemKey]: e.target.value,
+                        }))
+                      }
+                      disabled={selectionConfirmed}
+                    />
+                  ) : (
+                    <select
+                      className="item-select"
+                      value={selectedItem}
+                      onChange={(e) =>
+                        setSelectedItemByCategoryAndSubcategory((prev) => ({
+                          ...prev,
+                          [itemKey]: e.target.value,
+                        }))
+                      }
+                      disabled={selectionConfirmed}
+                    >
+                      {items.map((itemName) => (
+                        <option key={itemName} value={itemName}>
+                          {itemName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <button
                     className="add-item-btn"
                     type="button"
-                    onClick={() => addProductLine(category, selectedSubcategory, selectedItem)}
-                    disabled={selectionConfirmed || !selectedItem}
+                    onClick={() => {
+                      addProductLine(category, selectedSubcategory, selectedItem);
+                      if (isOtherCategory) {
+                        setSelectedItemByCategoryAndSubcategory((prev) => ({
+                          ...prev,
+                          [itemKey]: "",
+                        }));
+                      }
+                    }}
+                    disabled={selectionConfirmed || !selectedItem.trim()}
                   >
                     Add Item
                   </button>
@@ -493,12 +488,6 @@ export default function Home({
         </div>
 
         <div className="home-actions">
-          <button className="action-btn secondary-btn" onClick={handleSaveDraft}>
-            Save Order Draft
-          </button>
-          <button className="start-btn" onClick={handleStart}>
-            Go to Flashing Builder Page
-          </button>
           {!embedded && (
             <button className="back-btn" onClick={() => setView("menu")}>
               Back

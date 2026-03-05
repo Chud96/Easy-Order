@@ -268,6 +268,7 @@ export default function OrderSummary({
                           <tr>
                             <th>Qty</th>
                             <th>Len</th>
+                            <th>REF</th>
                             <th>Finish</th>
                           </tr>
                         </thead>
@@ -276,7 +277,8 @@ export default function OrderSummary({
                             <tr key={itemIndex}>
                               <td>{item.qty}</td>
                               <td>{item.length}</td>
-                              <td>{item.label || "-"}</td>
+                              <td>{item.ref || item.label || "-"}</td>
+                              <td>{item.finish || item.label || "-"}</td>
                             </tr>
                           ))}
                         </tbody>

@@ -78,9 +78,9 @@ export async function exportOrderToPdf(order) {
   }
 
   html += `<div class="content"><div class="drawing-container">${svg}</div><div class="table-container"><table>`;
-  html += `<tr><th>Qty</th><th>Length</th><th>Label</th></tr>`;
+  html += `<tr><th>Qty</th><th>Length</th><th>REF</th><th>Finish</th></tr>`;
   order.orderItems.forEach((item) => {
-    html += `<tr><td>${escapeHtml(item.qty)}</td><td>${escapeHtml(item.length)}</td><td>${escapeHtml(item.label || "")}</td></tr>`;
+    html += `<tr><td>${escapeHtml(item.qty)}</td><td>${escapeHtml(item.length)}</td><td>${escapeHtml(item.ref || "")}</td><td>${escapeHtml(item.finish || item.label || "")}</td></tr>`;
   });
   html += `</table></div></div></body></html>`;
 
@@ -151,11 +151,11 @@ export async function exportAllOrdersToPdf(orders) {
       <div class="item-content">
         <div class="drawing-container">${svg}</div>
         <table>
-          <tr><th>Qty</th><th>Length</th><th>Label</th></tr>
+          <tr><th>Qty</th><th>Length</th><th>REF</th><th>Finish</th></tr>
           ${order.orderItems
             .map(
               (item) =>
-                `<tr><td>${escapeHtml(item.qty)}</td><td>${escapeHtml(item.length)}</td><td>${escapeHtml(item.label || "")}</td></tr>`
+                `<tr><td>${escapeHtml(item.qty)}</td><td>${escapeHtml(item.length)}</td><td>${escapeHtml(item.ref || "")}</td><td>${escapeHtml(item.finish || item.label || "")}</td></tr>`
             )
             .join("")}
         </table>

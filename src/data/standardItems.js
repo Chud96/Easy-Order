@@ -57,6 +57,8 @@ export const STANDARD_ITEMS_BY_CATEGORY = {
     "50mm Poly Zipss",
     "65mm Poly Zipss",
     "25mm Roofing Screws",
+    "Batten Zips"
 
   ],
+  Other: [],
 };

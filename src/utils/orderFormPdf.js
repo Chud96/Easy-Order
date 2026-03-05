@@ -7,7 +7,23 @@ const QTY_ONLY_CATEGORIES = new Set([
   "Gutter Accessories",
   "Battens",
   "Insulation",
+  "Other",
 ]);
+const PDF_CATEGORY_ORDER = [
+  "Roofing",
+  "Flashings",
+  "Fascia",
+  "Fascia Accessories",
+  "Gutter",
+  "Gutter Accessories",
+  "Battens",
+  "Insulation",
+  "Screws",
+];
+
+const PDF_CATEGORY_LABELS = {
+  Flashings: "Flashings (Standard Items)",
+};
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -83,6 +99,19 @@ function groupSelectionsByCategoryAndSubcategory(standardSelections) {
   }, {});
 }
 
+function getOrderedCategories(groupedSelections) {
+  const existing = Object.keys(groupedSelections);
+  const known = PDF_CATEGORY_ORDER.filter((category) => existing.includes(category));
+  const unknown = existing
+    .filter((category) => !PDF_CATEGORY_ORDER.includes(category))
+    .sort((a, b) => a.localeCompare(b));
+  return [...known, ...unknown];
+}
+
+function getPdfCategoryDisplayName(category) {
+  return PDF_CATEGORY_LABELS[category] || category;
+}
+
 export function saveOrderFormRecord(orderForm) {
   try {
     const raw = localStorage.getItem(ORDER_FORMS_STORAGE_KEY);
@@ -99,7 +128,7 @@ export function saveOrderFormRecord(orderForm) {
 export function exportOrderFormToPdf(orderForm) {
   const { orderInfo, standardSelections, supplier } = orderForm;
   const groupedSelections = groupSelectionsByCategoryAndSubcategory(standardSelections);
-  const orderedCategories = Object.keys(groupedSelections).sort((a, b) => a.localeCompare(b));
+  const orderedCategories = getOrderedCategories(groupedSelections);
   const categoryBlocks = orderedCategories
     .flatMap((category) => {
       const subMap = groupedSelections[category];
@@ -112,7 +141,9 @@ export function exportOrderFormToPdf(orderForm) {
     })
     .map(({ category, subcategory, rows }) =>
       renderCategoryBlock(
-        subcategory && subcategory !== "General" ? `${category} - ${subcategory}` : category,
+        subcategory && subcategory !== "General"
+          ? `${getPdfCategoryDisplayName(category)} - ${subcategory}`
+          : getPdfCategoryDisplayName(category),
         rows
       )
     )
@@ -204,7 +235,7 @@ export function exportOrderFormToPdf(orderForm) {
 export async function exportCombinedOrderToPdf(orderForm) {
   const { orderInfo, standardSelections = [], flashingOrders = [], supplier } = orderForm;
   const groupedSelections = groupSelectionsByCategoryAndSubcategory(standardSelections);
-  const orderedCategories = Object.keys(groupedSelections).sort((a, b) => a.localeCompare(b));
+  const orderedCategories = getOrderedCategories(groupedSelections);
   const categoryBlocks = orderedCategories
     .flatMap((category) => {
       const subMap = groupedSelections[category];
@@ -217,7 +248,9 @@ export async function exportCombinedOrderToPdf(orderForm) {
     })
     .map(({ category, subcategory, rows }) =>
       renderCategoryBlock(
-        subcategory && subcategory !== "General" ? `${category} - ${subcategory}` : category,
+        subcategory && subcategory !== "General"
+          ? `${getPdfCategoryDisplayName(category)} - ${subcategory}`
+          : getPdfCategoryDisplayName(category),
         rows
       )
     )
@@ -231,11 +264,11 @@ export async function exportCombinedOrderToPdf(orderForm) {
         const orderItems = order.orderItems || [];
         const rows =
           orderItems.length === 0
-            ? '<tr><td colspan="3">&nbsp;</td></tr>'
+            ? '<tr><td colspan="4">&nbsp;</td></tr>'
             : orderItems
                 .map(
                   (item) =>
-                    `<tr><td class="num">${escapeHtml(item.qty)}</td><td class="num">${escapeHtml(item.length)}</td><td>${escapeHtml(item.label || "")}</td></tr>`
+                    `<tr><td class="num">${escapeHtml(item.qty)}</td><td class="num">${escapeHtml(item.length)}</td><td>${escapeHtml(item.ref || "")}</td><td>${escapeHtml(item.finish || item.label || "")}</td></tr>`
                 )
                 .join("");
         return `<section class="flashing-block">
@@ -243,7 +276,7 @@ export async function exportCombinedOrderToPdf(orderForm) {
           <div class="flashing-grid">
             <div class="drawing-wrap">${svg || "<div>No drawing preview</div>"}</div>
             <table>
-              <thead><tr><th class="num">Qty</th><th class="num">Length</th><th>Finish</th></tr></thead>
+              <thead><tr><th class="num">Qty</th><th class="num">Length</th><th>REF</th><th>Finish</th></tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </div>
@@ -280,6 +313,10 @@ export async function exportCombinedOrderToPdf(orderForm) {
       td { font-size: 10px; }
       .num { text-align: right; width: 46px; }
       .item-header-row td { background: #eef3fb; font-weight: 700; text-align: left; }
+      .footer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+      .notes-box, .legend-box { border: 1px solid #4b5563; min-height: 90px; padding: 6px; }
+      .notes-title { font-size: 11px; font-weight: 700; margin-bottom: 5px; }
+      .colour-row { margin: 3px 0; }
     </style>
   </head><body>
     <div class="sheet">
@@ -304,6 +341,21 @@ export async function exportCombinedOrderToPdf(orderForm) {
 
       <h2 class="section-title">Custom Flashings</h2>
       ${flashingBlocks || "<div>No custom flashing drawings saved.</div>"}
+
+      <div class="footer-grid">
+        <div class="notes-box">
+          <div class="notes-title">Colours / Notes</div>
+          <div class="colour-row">Roof: ${escapeHtml(orderInfo.roofColour)}</div>
+          <div class="colour-row">Fascia: ${escapeHtml(orderInfo.fasciaColour)}</div>
+          <div class="colour-row">Gutter: ${escapeHtml(orderInfo.gutterColour)}</div>
+          <div class="colour-row" style="margin-top:8px;">${escapeHtml(orderInfo.notes)}</div>
+        </div>
+        <div class="legend-box">
+          <div class="notes-title">Summary</div>
+          <div>Total standard items: ${escapeHtml(standardSelections.length)}</div>
+          <div>Total flashing drawings: ${escapeHtml(flashingOrders.length)}</div>
+        </div>
+      </div>
     </div>
   </body></html>`;
 

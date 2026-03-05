@@ -74,6 +74,7 @@ export default function FlashingBuilder({
     qty: 1,
     length: "",
     finish: "",
+    ref: "",
   });
 
   const [localSavedOrders, setLocalSavedOrders] = useState(() => {
@@ -257,8 +258,11 @@ export default function FlashingBuilder({
       alert("Quantity and length are required.");
       return;
     }
-    setOrderItems((prev) => [...prev, { qty, length, label: specForm.finish || "" }]);
-    setSpecForm((prev) => ({ ...prev, length: "", qty: 1 }));
+    setOrderItems((prev) => [
+      ...prev,
+      { qty, length, ref: specForm.ref || "", finish: specForm.finish || "" },
+    ]);
+    setSpecForm((prev) => ({ ...prev, length: "", qty: 1, ref: "", finish: "" }));
     setConfirmed(false);
   };
 
@@ -292,7 +296,7 @@ export default function FlashingBuilder({
     setFolds([]);
     setDrawPoints([]);
     setOrderItems([]);
-    setSpecForm({ qty: 1, length: "", finish: "" });
+    setSpecForm({ qty: 1, length: "", finish: "", ref: "" });
     setOverallNotes("");
     setProfileConfirmed(false);
     setConfirmed(false);
@@ -490,6 +494,16 @@ export default function FlashingBuilder({
                 onChange={(e) => setSpecForm((prev) => ({ ...prev, finish: e.target.value }))}
               />
             </div>
+
+            <div className="fb-spec-field">
+              <label>REF</label>
+              <input
+                type="text"
+                value={specForm.ref}
+                placeholder="Reference"
+                onChange={(e) => setSpecForm((prev) => ({ ...prev, ref: e.target.value }))}
+              />
+            </div>
             <button className="fb-btn fb-btn-neutral" onClick={addLengthToDrawing}>
               Add Length to this Drawing
             </button>
@@ -508,7 +522,8 @@ export default function FlashingBuilder({
                 <div key={idx}>
                   <span>Qty {item.qty}</span>
                   <span>{item.length} mm</span>
-                  <span>{item.label || "-"}</span>
+                  <span>{item.ref || "-"}</span>
+                  <span>{item.finish || item.label || "-"}</span>
                   <button className="fb-btn fb-btn-danger" onClick={() => removeOrderItem(idx)}>
                     Delete
                   </button>

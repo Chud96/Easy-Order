@@ -20,22 +20,22 @@ export const STANDARD_FLASHING_DESIGNS = [
   },
   {
     id: "std-ridge-capping",
-    name: "Ridge Capping",
+    name: "Trimdek Ridge Capping",
     folds: [
-      { length: 25, angle: 90 },
-      { length: 220, angle: 330 },
-      { length: 220, angle: 30 },
-      { length: 25, angle: 270 },
+      { length: 35, angle: 70 },
+      { length: 200, angle: 10 },
+      { length: 200, angle: 350 },
+      { length: 35, angle: 290 },
     ],
   },
   {
     id: "std-valley-tray",
-    name: "Valley Tray",
+    name: "Valley",
     folds: [
-      { length: 20, angle: 90 },
-      { length: 130, angle: 330 },
-      { length: 130, angle: 30 },
-      { length: 20, angle: 270 },
+      { length: 20, angle: 210 },
+      { length: 200, angle: 345 },
+      { length: 200, angle: 15 },
+      { length: 20, angle: 150 },
     ],
   },
   {
