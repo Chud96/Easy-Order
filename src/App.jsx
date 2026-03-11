@@ -3,6 +3,7 @@ import Home from "./components/Home";
 import FlashingBuilder from "./components/FlashingBuilder";
 import LoginPage from "./components/LoginPage";
 import OrderSummary from "./components/OrderSummary";
+import ScheduleBoard from "./components/ScheduleBoard";
 import { supabase } from "./lib/supabase";
 import { STANDARD_FLASHING_DESIGNS } from "./data/standardFlashings";
 import "./styles/AppShell.css";
@@ -74,6 +75,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showOrderHome, setShowOrderHome] = useState(true);
+  const [showSchedulePage, setShowSchedulePage] = useState(false);
   const [activeTab, setActiveTab] = useState(TAB_KEYS.STANDARD);
   const [orderInfo, setOrderInfo] = useState({ ...DEFAULT_ORDER_INFO });
   const [standardSelections, setStandardSelections] = useState([]);
@@ -333,6 +335,7 @@ export default function App() {
       setStandardSelections(info.standardSelections);
     }
     setOrderInfo((prev) => ({ ...prev, ...(info || {}) }));
+    setShowSchedulePage(false);
     setShowOrderHome(false);
     setActiveTab(TAB_KEYS.FLASHINGS);
   };
@@ -369,12 +372,25 @@ export default function App() {
 
   const handleStartNewFromHome = () => {
     resetCurrentOrder();
+    setShowSchedulePage(false);
     setActiveTab(TAB_KEYS.STANDARD);
     setShowOrderHome(false);
   };
 
+  const handleGoToSchedule = () => {
+    setShowSchedulePage(true);
+    setShowOrderHome(false);
+  };
+
+  const handleOpenOrderWorkflow = () => {
+    setShowSchedulePage(false);
+    setShowOrderHome(false);
+    setActiveTab(TAB_KEYS.STANDARD);
+  };
+
   const handleContinueFromHome = () => {
     if (hasCurrentOrder) {
+      setShowSchedulePage(false);
       setActiveTab(TAB_KEYS.SUMMARY);
       setShowOrderHome(false);
       return;
@@ -385,11 +401,13 @@ export default function App() {
       setOrderInfo({ ...DEFAULT_ORDER_INFO, ...(latestSaved.orderInfo || {}) });
       setStandardSelections(latestSaved.standardSelections || []);
       setFlashingOrders(latestSaved.flashingOrders || []);
+      setShowSchedulePage(false);
       setActiveTab(TAB_KEYS.SUMMARY);
       setShowOrderHome(false);
       return;
     }
 
+    setShowSchedulePage(false);
     setActiveTab(TAB_KEYS.STANDARD);
     setShowOrderHome(false);
   };
@@ -404,6 +422,7 @@ export default function App() {
     };
     saveOrderSessions([session, ...savedOrderSessions]);
     resetCurrentOrder();
+    setShowSchedulePage(false);
     setActiveTab(TAB_KEYS.STANDARD);
     setShowOrderHome(true);
     alert("Order saved. You can continue it from Home or Order Summary.");
@@ -417,6 +436,7 @@ export default function App() {
     setOrderInfo({ ...DEFAULT_ORDER_INFO, ...(session.orderInfo || {}) });
     setStandardSelections(session.standardSelections || []);
     setFlashingOrders(session.flashingOrders || []);
+    setShowSchedulePage(false);
     setShowOrderHome(false);
     setActiveTab(TAB_KEYS.SUMMARY);
   };
@@ -525,7 +545,21 @@ export default function App() {
                 <button className="primary" onClick={handleStartNewFromHome}>
                   Start New Order
                 </button>
+                <button onClick={handleGoToSchedule}>Go to Schedule</button>
               </div>
+            </section>
+          </main>
+        ) : showSchedulePage ? (
+          <main className="workflow-body">
+            <section className="schedule-page-card">
+              <div className="schedule-page-head">
+                <h2>Schedule</h2>
+                <div className="schedule-page-actions">
+                  <button onClick={handleOpenOrderWorkflow}>Go to Orders</button>
+                  <button onClick={() => setShowOrderHome(true)}>Back to Home</button>
+                </div>
+              </div>
+              <ScheduleBoard />
             </section>
           </main>
         ) : (

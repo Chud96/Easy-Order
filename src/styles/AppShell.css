@@ -187,12 +187,13 @@
 }
 
 .workflow-body {
-  padding-bottom: 20px;
+  padding: 0 16px 20px;
 }
 
 .order-home-card {
-  max-width: 680px;
-  margin: 18px auto 0;
+  max-width: none;
+  width: 100%;
+  margin: 18px 0 0;
   background: #ffffff;
   border: 1px solid #d6dfec;
   border-radius: 14px;
@@ -214,7 +215,7 @@
 .order-home-actions {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
 
@@ -232,6 +233,45 @@
   background: #1f4eae;
   border-color: #1f4eae;
   color: #ffffff;
+}
+
+.schedule-page-card {
+  max-width: none;
+  width: 100%;
+  margin: 16px 0 0;
+  background: #ffffff;
+  border: 1px solid #d6dfec;
+  border-radius: 14px;
+  padding: 14px;
+  color: #17253c;
+}
+
+.schedule-page-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.schedule-page-head h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.schedule-page-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.schedule-page-actions button {
+  border: 1px solid #ccd8eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-weight: 700;
+  background: #f4f7fd;
+  color: #233755;
+  cursor: pointer;
 }
 
 @media (max-width: 920px) {
@@ -253,5 +293,10 @@
 
   .order-home-actions {
     grid-template-columns: 1fr;
+  }
+
+  .schedule-page-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
