@@ -271,6 +271,10 @@ export default function FlashingBuilder({
     setConfirmed(false);
   };
 
+  const deleteSavedDrawing = (index) => {
+    setSavedOrders((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const confirmOrder = () => {
     if (!profileConfirmed || folds.length === 0) {
       alert("Complete the profile first.");
@@ -589,21 +593,29 @@ export default function FlashingBuilder({
             {savedOrders.map((order, idx) => (
               <li key={idx}>
                 <div>
-                  {calculateGirth(order.folds)} mm | {order.orderItems.length} items
+                  {calculateGirth(order.folds)} mm | {order.orderItems?.length || 0} items
                 </div>
-                <button
-                  className="fb-btn fb-btn-muted"
-                  onClick={async () => {
-                    try {
-                      await exportOrderToPdf(order);
-                    } catch (err) {
-                      console.error("Export failed", err);
-                      alert("Export failed: " + err.message);
-                    }
-                  }}
-                >
-                  Export PDF
-                </button>
+                <div className="fb-saved-actions">
+                  <button
+                    className="fb-btn fb-btn-muted"
+                    onClick={async () => {
+                      try {
+                        await exportOrderToPdf(order);
+                      } catch (err) {
+                        console.error("Export failed", err);
+                        alert("Export failed: " + err.message);
+                      }
+                    }}
+                  >
+                    Export PDF
+                  </button>
+                  <button
+                    className="fb-btn fb-btn-danger"
+                    onClick={() => deleteSavedDrawing(idx)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

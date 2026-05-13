@@ -1,0 +1,393 @@
+.order-detail-loading {
+  padding: 60px;
+  text-align: center;
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* ── Breadcrumb (shared pattern with JobDetail) ── */
+.order-detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ── Header ── */
+.order-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid #d6dfec;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.order-detail-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #17253c;
+}
+
+.order-detail-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #5f6f89;
+}
+
+.order-detail-head-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.order-supplier-chip {
+  font-size: 12px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 600;
+}
+
+/* ── Tabs ── */
+.order-detail-tabs {
+  display: flex;
+  gap: 4px;
+  background: #e9eff7;
+  border: 1px solid #cdd8e9;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.order-detail-tabs button {
+  flex: 1 0 120px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #51627f;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.order-detail-tabs button.active {
+  background: #fff;
+  color: #17253c;
+  border: 1px solid #d3ddec;
+}
+
+/* ── Body ── */
+.order-detail-body {
+  background: #fff;
+  border: 1px solid #d6dfec;
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 400px;
+}
+
+/* ── Summary tab ── */
+.summary-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.summary-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.summary-section-title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-row label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  border: 1px solid #cad5e8;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  background: #fff;
+  color: #17253c;
+  font-family: inherit;
+}
+
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: #2351be;
+  box-shadow: 0 0 0 2px rgba(35,81,190,0.1);
+}
+
+.form-row textarea { resize: vertical; }
+
+.form-row-full { grid-column: 1 / -1; }
+
+.field-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+/* ── Allocation ── */
+.allocation-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #1e40af;
+  margin-bottom: 14px;
+}
+
+.allocation-info p { margin: 0; }
+
+.allocation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: end;
+}
+
+.allocation-total {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #17253c;
+}
+
+.allocation-total-amount {
+  font-size: 18px;
+}
+
+/* ── Items table ── */
+.summary-items-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.summary-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.summary-items-table thead th {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.summary-items-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #17253c;
+}
+
+.summary-items-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Flashings summary ── */
+.flashings-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flashing-summary-card {
+  display: flex;
+  gap: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  align-items: flex-start;
+  background: #fafcff;
+}
+
+.flashing-summary-preview {
+  flex-shrink: 0;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.flashing-summary-info {
+  flex: 1;
+}
+
+.flashing-summary-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.flashing-summary-line {
+  font-size: 12px;
+  color: #5f6f89;
+  padding: 2px 0;
+}
+
+/* ── Summary actions ── */
+.summary-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+/* ── PO tab ── */
+.po-tab-header,
+.contract-tab-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.po-tab-header h3,
+.contract-tab-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #17253c;
+}
+
+.po-info-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.po-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #5f6f89;
+  padding: 4px 0;
+}
+
+.po-status-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.po-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.po-items-preview {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.po-items-preview h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.po-flashing-note {
+  font-size: 13px;
+  color: #5f6f89;
+  margin: 10px 0 0;
+  font-style: italic;
+}
+
+.po-empty-note {
+  font-size: 14px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 30px 0;
+}
+
+/* ── Contract tab ── */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 700px) {
+  .order-detail-head { flex-direction: column; }
+  .order-detail-head-meta { flex-direction: row; align-items: center; }
+  .summary-form-grid { grid-template-columns: 1fr; }
+  .allocation-grid { grid-template-columns: 1fr; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .order-detail-tabs button { flex: 1 0 90px; font-size: 12px; padding: 7px 8px; }
+}

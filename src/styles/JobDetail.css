@@ -1,0 +1,742 @@
+.job-detail-loading {
+  padding: 60px;
+  text-align: center;
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* ── Breadcrumb ── */
+.job-detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.breadcrumb-back {
+  border: none;
+  background: none;
+  color: #2351be;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.breadcrumb-back:hover { text-decoration: underline; }
+.breadcrumb-sep { color: #cbd5e1; }
+.breadcrumb-current { color: #64748b; }
+
+/* ── Job header ── */
+.job-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid #d6dfec;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.job-detail-title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #17253c;
+}
+
+.job-detail-address {
+  margin: 0;
+  font-size: 14px;
+  color: #5f6f89;
+}
+
+.job-detail-head-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.job-detail-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #17253c;
+}
+
+/* ── Tabs ── */
+.job-detail-tabs {
+  display: flex;
+  gap: 4px;
+  background: #e9eff7;
+  border: 1px solid #cdd8e9;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+
+.job-detail-tabs button {
+  flex: 1 0 100px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #51627f;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 9px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.job-detail-tabs button.active {
+  background: #fff;
+  color: #17253c;
+  border: 1px solid #d3ddec;
+}
+
+/* ── Body ── */
+.job-detail-body {
+  background: #fff;
+  border: 1px solid #d6dfec;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* ── Info tab ── */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.form-row-full {
+  grid-column: 1 / -1;
+}
+
+.info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 15px;
+  color: #17253c;
+  font-weight: 500;
+}
+
+.info-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #17253c;
+}
+
+.info-notes {
+  color: #5f6f89;
+  white-space: pre-wrap;
+  font-size: 14px;
+}
+
+.info-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-row label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  border: 1px solid #cad5e8;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  background: #fff;
+  color: #17253c;
+  font-family: inherit;
+}
+
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: #2351be;
+  box-shadow: 0 0 0 2px rgba(35,81,190,0.1);
+}
+
+.form-row textarea { resize: vertical; }
+
+.info-edit-actions,
+.info-actions,
+.form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ── Financial summary ── */
+.financial-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.financial-summary h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.financial-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.financial-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #5f6f89;
+}
+
+.financial-row-total {
+  font-weight: 700;
+  color: #17253c;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+.financial-row-total.over .financial-amount {
+  color: #dc2626;
+}
+
+.financial-amount {
+  font-weight: 700;
+}
+
+/* ── Orders tab ── */
+.orders-tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.orders-tab-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #17253c;
+}
+
+.orders-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.orders-empty p { margin: 0 0 12px; }
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background: #fafcff;
+}
+
+.order-card:hover {
+  border-color: #2351be;
+  box-shadow: 0 0 0 2px rgba(35,81,190,0.08);
+}
+
+.order-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.order-card-head > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-number {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2351be;
+}
+
+.order-card-body {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.order-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ── Invoices tab ── */
+.invoices-tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.invoices-tab-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #17253c;
+}
+
+.invoices-create-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.invoices-info-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #1e40af;
+}
+
+.invoices-info-box p { margin: 0; }
+
+.invoices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.invoice-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #fafcff;
+}
+
+.invoice-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.invoice-card-head > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invoice-number {
+  font-size: 15px;
+  font-weight: 800;
+  color: #17253c;
+}
+
+.invoice-type-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.invoice-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #17253c;
+}
+
+.invoice-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.invoice-date-info {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ── Modal (shared with JobsList) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.modal-title {
+  margin: 0 0 20px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #17253c;
+}
+
+.job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Order card extras ── */
+.order-card-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-pdf-hint {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2351be;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 2px 7px;
+  letter-spacing: 0.2px;
+}
+
+/* ── Contract & PO card extras ── */
+.contract-items-preview {
+  margin-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+}
+
+.contract-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.contract-items-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  padding: 0 8px 6px 0;
+  letter-spacing: 0.4px;
+}
+
+.contract-items-table td {
+  padding: 4px 8px 4px 0;
+  color: #17253c;
+  border-top: 1px solid #f1f5f9;
+}
+
+.card-notes {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+/* ── Files tab ── */
+.files-upload-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.files-category-select {
+  border: 1px solid #cad5e8;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #17253c;
+  background: #fff;
+  font-family: inherit;
+}
+
+.files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fafcff;
+}
+
+.file-row-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  background: #e9eff7;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #2351be;
+  letter-spacing: 0.3px;
+}
+
+.file-row-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.file-row-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #17253c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.file-cat-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cat-plan    { background: #ede9fe; color: #6d28d9; }
+.cat-order   { background: #dbeafe; color: #1d4ed8; }
+.cat-contract { background: #d1fae5; color: #065f46; }
+.cat-other   { background: #f1f5f9; color: #64748b; }
+
+.file-row-size,
+.file-row-date {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.file-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Order source toggle ── */
+.order-source-toggle {
+  display: flex;
+  gap: 4px;
+  background: #e9eff7;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.source-btn {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #51627f;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.source-btn.active {
+  background: #fff;
+  color: #17253c;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* ── File upload row in modal ── */
+.file-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-upload-size {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.order-file-hint {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6d28d9;
+  background: #ede9fe;
+  border: 1px solid #c4b5fd;
+  border-radius: 999px;
+  padding: 2px 7px;
+  letter-spacing: 0.2px;
+}
+
+/* ── Wider modal for contracts ── */
+.modal-card-wide {
+  max-width: 680px;
+}
+
+/* ── Contract line items editor in modal ── */
+.contract-line-items-editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.contract-edit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.contract-edit-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 0 6px 6px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.contract-edit-table td {
+  padding: 4px 6px 4px 0;
+  vertical-align: middle;
+}
+
+.table-input {
+  width: 100%;
+  border: 1px solid #cad5e8;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: #17253c;
+  background: #fff;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.table-input:focus {
+  outline: none;
+  border-color: #2351be;
+  box-shadow: 0 0 0 2px rgba(35,81,190,0.1);
+}
+
+.table-total {
+  text-align: right;
+  font-weight: 700;
+  color: #17253c;
+  font-size: 13px;
+  padding-right: 6px;
+}
+
+@media (max-width: 700px) {
+  .job-detail-head { flex-direction: column; }
+  .job-detail-head-meta { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+  .info-grid { grid-template-columns: 1fr; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .order-card-body { grid-template-columns: 1fr 1fr; }
+  .modal-card-wide { max-width: 96vw; }
+}

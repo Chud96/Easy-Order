@@ -289,6 +289,13 @@
   padding: 9px 10px;
 }
 
+.fb-saved-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 @media (max-width: 1120px) {
   .flashing-builder-layout {
     grid-template-columns: 1fr;
@@ -328,6 +335,15 @@
   .fb-spec-grid,
   .fb-items-list > div {
     grid-template-columns: 1fr;
+  }
+
+  .fb-saved-list li,
+  .fb-saved-actions {
+    align-items: stretch;
+  }
+
+  .fb-saved-list li {
+    flex-direction: column;
   }
 
   .fb-grid-head {
