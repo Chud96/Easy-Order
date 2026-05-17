@@ -7,7 +7,7 @@ import { calculateGirth } from "../utils/geometry";
 import { exportCombinedOrderToPdf } from "../utils/orderFormPdf";
 import "../styles/OrderDetail.css";
 
-const ORDER_STATUS_LABELS = { draft: "Draft", sent: "Sent", delivered: "Delivered" };
+const ORDER_STATUS_LABELS = { draft: "Draft", sent: "Sent", delivered: "Delivered", in_progress: "In Progress", complete: "Complete" };
 
 const fmt = (n) =>
   n != null

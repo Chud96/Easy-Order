@@ -1,5 +1,6 @@
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #f3f6fb;
   display: flex;
   flex-direction: column;
@@ -89,8 +90,10 @@
 /* ── Body ── */
 .app-shell-body {
   flex: 1;
+  min-height: 0;
   padding: 16px;
-  overflow-y: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 /* ── Shared page card ── */

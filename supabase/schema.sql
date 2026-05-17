@@ -48,7 +48,7 @@ create table if not exists orders (
   delivery_date   date,
   created_at      timestamptz   not null default now(),
   updated_at      timestamptz   not null default now(),
-  constraint orders_status_check check (status in ('draft','sent','delivered'))
+  constraint orders_status_check check (status in ('draft','sent','delivered','in_progress','complete'))
 );
 
 alter table orders enable row level security;
@@ -213,8 +213,40 @@ do $$ begin
   end if;
 end $$;
 
+-- ── Schedule entries ─────────────────────────────────────────
+create table if not exists schedule_entries (
+  id              uuid        primary key default gen_random_uuid(),
+  owner_id        uuid        not null references auth.users(id) on delete cascade,
+  order_id        uuid        references orders(id) on delete set null,
+  job_id          uuid        references jobs(id) on delete set null,
+  builder         text        not null default '',
+  address         text        not null default '',
+  info            text        not null default '',
+  color           text        not null default 'blue',
+  start_date      date        not null,
+  span            integer     not null default 1,
+  category        text        not null default 'Measures',
+  row_in_category integer     not null default 0,
+  workers         text[]      not null default '{}',
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+alter table schedule_entries enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where tablename = 'schedule_entries' and policyname = 'Users manage own schedule_entries'
+  ) then
+    execute 'create policy "Users manage own schedule_entries" on schedule_entries for all using (auth.uid() = owner_id)';
+  end if;
+end $$;
+
 -- ── Column additions (safe to re-run) ────────────────────────
+alter table install_contracts add column if not exists supplier_id uuid references suppliers(id) on delete set null;
 alter table orders          add column if not exists file_path  text;
+alter table orders drop constraint if exists orders_status_check;
+alter table orders add constraint orders_status_check check (status in ('draft','sent','delivered','in_progress','complete'));
 alter table install_contracts add column if not exists line_items_json jsonb not null default '[]';
 alter table invoices drop constraint if exists invoices_type_check;
 alter table invoices add constraint invoices_type_check check (type in ('deposit','progress','final'));

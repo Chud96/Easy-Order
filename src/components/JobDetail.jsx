@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { exportCombinedOrderToPdf } from "../utils/orderFormPdf";
+import { exportContractToPdf } from "../utils/contractPdf";
 import "../styles/JobDetail.css";
 
 const STATUS_ORDER = ["quoted", "ordered", "scheduled", "in_progress", "complete", "invoiced"];
@@ -12,7 +13,7 @@ const STATUS_LABELS = {
   complete: "Complete",
   invoiced: "Invoiced",
 };
-const ORDER_STATUS_LABELS = { draft: "Draft", sent: "Sent", delivered: "Delivered" };
+const ORDER_STATUS_LABELS = { draft: "Draft", sent: "Sent", delivered: "Delivered", in_progress: "In Progress", complete: "Complete" };
 const INVOICE_TYPE_LABELS = { deposit: "Deposit", progress: "Progress", final: "Final" };
 const INVOICE_STATUS_LABELS = { draft: "Draft", sent: "Sent", paid: "Paid" };
 const CONTRACT_STATUS_LABELS = { draft: "Draft", sent: "Sent", signed: "Signed" };
@@ -80,11 +81,18 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
   const [invoiceForm, setInvoiceForm] = useState({ type: "deposit", amount: "", notes: "" });
   const [creatingInvoice, setCreatingInvoice] = useState(false);
 
-  // Contract modal
+  // Contract modal (create)
   const [showContractForm, setShowContractForm] = useState(false);
-  const [contractForm, setContractForm] = useState({ order_id: "", contractor_name: "", contractor_email: "", scope_notes: "" });
+  const [contractForm, setContractForm] = useState({ order_id: "", supplier_id: "", contractor_name: "", contractor_email: "", scope_notes: "" });
   const [contractLineItems, setContractLineItems] = useState([emptyLineItem()]);
   const [creatingContract, setCreatingContract] = useState(false);
+
+  // Contract modal (edit)
+  const [showEditContractModal, setShowEditContractModal] = useState(false);
+  const [editingContract, setEditingContract] = useState(null);
+  const [editContractForm, setEditContractForm] = useState({ supplier_id: "", contractor_name: "", contractor_email: "", scope_notes: "" });
+  const [editContractLineItems, setEditContractLineItems] = useState([emptyLineItem()]);
+  const [savingContract, setSavingContract] = useState(false);
 
   // PO modal
   const [showPoForm, setShowPoForm] = useState(false);
@@ -219,6 +227,12 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
   };
 
+  const updateOrderStatus = async (id, status) => {
+    const { data, error } = await supabase.from("orders").update({ status }).eq("id", id).select("*").single();
+    if (error) { alert(error.message); return; }
+    setOrders((prev) => prev.map((o) => (o.id === id ? data : o)));
+  };
+
   const handleOpenFile = async (path) => {
     setGeneratingPdf(true);
     try {
@@ -341,9 +355,24 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
   );
 
   const openNewContract = () => {
-    setContractForm({ order_id: orders[0]?.id || "", contractor_name: "", contractor_email: "", scope_notes: "" });
+    setContractForm({ order_id: orders[0]?.id || "", supplier_id: "", contractor_name: "", contractor_email: "", scope_notes: "" });
     setContractLineItems([emptyLineItem()]);
     setShowContractForm(true);
+  };
+
+  const openEditContract = (contract) => {
+    setEditingContract(contract);
+    setEditContractForm({
+      supplier_id: contract.supplier_id || "",
+      contractor_name: contract.contractor_name || "",
+      contractor_email: contract.contractor_email || "",
+      scope_notes: contract.scope_notes || "",
+    });
+    const items = Array.isArray(contract.line_items_json) && contract.line_items_json.length
+      ? contract.line_items_json.map((li) => ({ qty: String(li.qty), description: li.description, rate: String(li.rate) }))
+      : [emptyLineItem()];
+    setEditContractLineItems(items);
+    setShowEditContractModal(true);
   };
 
   const handleCreateContract = async (e) => {
@@ -360,6 +389,7 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
         order_id: contractForm.order_id,
         job_id: jobId,
         owner_id: userId,
+        supplier_id: contractForm.supplier_id || null,
         contractor_name: contractForm.contractor_name,
         contractor_email: contractForm.contractor_email,
         scope_notes: contractForm.scope_notes,
@@ -373,6 +403,49 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
     if (error) { alert(`Could not create contract: ${error.message}`); return; }
     setContracts((prev) => [...prev, data]);
     setShowContractForm(false);
+    if (data.contractor_email) {
+      const orderNum = orders.find((o) => o.id === data.order_id)?.order_number || "";
+      const subject = `Install Contract — ${job?.site_address || ""}${orderNum ? ` (${orderNum})` : ""}`;
+      const body = [
+        `Hi ${data.contractor_name || ""},`,
+        "",
+        `Please find your install contract details below for the job at ${job?.site_address || "the site"}.`,
+        "",
+        `Order: ${orderNum}`,
+        `Total: ${new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(amount)}`,
+        "",
+        data.scope_notes ? `Scope:\n${data.scope_notes}` : "",
+        "",
+        "Please confirm your acceptance of this contract.",
+      ].filter((l) => l !== undefined).join("\n");
+      window.open(`mailto:${data.contractor_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    }
+  };
+
+  const handleSaveContract = async (e) => {
+    e.preventDefault();
+    setSavingContract(true);
+    const lineItems = editContractLineItems
+      .filter((li) => li.description.trim())
+      .map((li) => ({ qty: parseFloat(li.qty) || 0, description: li.description.trim(), rate: parseFloat(li.rate) || 0 }));
+    const amount = lineItems.reduce((s, li) => s + li.qty * li.rate, 0);
+    const { data, error } = await supabase
+      .from("install_contracts")
+      .update({
+        supplier_id: editContractForm.supplier_id || null,
+        contractor_name: editContractForm.contractor_name,
+        contractor_email: editContractForm.contractor_email,
+        scope_notes: editContractForm.scope_notes,
+        line_items_json: lineItems,
+        amount,
+      })
+      .eq("id", editingContract.id)
+      .select("*")
+      .single();
+    setSavingContract(false);
+    if (error) { alert(error.message); return; }
+    setContracts((prev) => prev.map((c) => (c.id === editingContract.id ? data : c)));
+    setShowEditContractModal(false);
   };
 
   const updateContractStatus = async (id, status) => {
@@ -683,6 +756,18 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
                         {!order.file_path && order.status !== "draft" && <span className="order-pdf-hint">PDF ↗</span>}
                       </div>
                       <div className="order-card-actions-right">
+                        {order.status === "delivered" && (
+                          <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "in_progress"); }}>Mark In Progress</button>
+                        )}
+                        {order.status === "in_progress" && (
+                          <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "delivered"); }}>↩ Delivered</button>
+                        )}
+                        {order.status === "in_progress" && (
+                          <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "complete"); }}>Mark Complete</button>
+                        )}
+                        {order.status === "complete" && (
+                          <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "in_progress"); }}>↩ In Progress</button>
+                        )}
                         {(order.status !== "draft" || order.file_path) && (
                           <button
                             className="btn btn-secondary btn-sm"
@@ -790,8 +875,45 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
                       <div>
                         <span className="order-number">{contract.contractor_name || "Contract"}</span>
                         <span className={`status-badge ${contract.status}`}>{CONTRACT_STATUS_LABELS[contract.status] || contract.status}</span>
+                        {contract.order_id && (
+                          <span style={{ marginLeft: 8, fontSize: "0.82em", color: "#6b7280", fontWeight: 500 }}>
+                            {getOrderNumber(contract.order_id)}
+                          </span>
+                        )}
                       </div>
                       <div className="order-card-actions-right">
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => exportContractToPdf({
+                            contract,
+                            job,
+                            orderNumber: getOrderNumber(contract.order_id),
+                            supplierName: getSupplierName(contract.supplier_id),
+                          })}
+                        >View PDF</button>
+                        {contract.contractor_email && (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => {
+                              const orderNum = getOrderNumber(contract.order_id);
+                              const contractTotal = (Array.isArray(contract.line_items_json) ? contract.line_items_json : [])
+                                .reduce((s, li) => s + (li.qty || 0) * (li.rate || 0), 0);
+                              const subject = `Install Contract — ${job?.site_address || ""}${orderNum ? ` (${orderNum})` : ""}`;
+                              const body = [
+                                `Hi ${contract.contractor_name || ""},`,
+                                "",
+                                `Please find your install contract details for the job at ${job?.site_address || "the site"}.`,
+                                "",
+                                `Order: ${orderNum}`,
+                                `Total: ${new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(contractTotal)}`,
+                                "",
+                                contract.scope_notes ? `Scope:\n${contract.scope_notes}` : "",
+                              ].join("\n");
+                              window.open(`mailto:${contract.contractor_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+                            }}
+                          >Email</button>
+                        )}
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEditContract(contract)}>Edit</button>
                         {contract.status === "draft" && (
                           <button className="btn btn-secondary btn-sm" onClick={() => updateContractStatus(contract.id, "sent")}>Mark Sent</button>
                         )}
@@ -1134,6 +1256,27 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
                   </select>
                 </div>
                 <div className="form-row">
+                  <label>Supplier / Contractor</label>
+                  <select
+                    value={contractForm.supplier_id}
+                    onChange={(e) => {
+                      const sid = e.target.value;
+                      const sup = suppliers.find((s) => s.id === sid);
+                      setContractForm((p) => ({
+                        ...p,
+                        supplier_id: sid,
+                        contractor_name: sup ? sup.name : p.contractor_name,
+                        contractor_email: sup ? (sup.email || p.contractor_email) : p.contractor_email,
+                      }));
+                    }}
+                  >
+                    <option value="">— Select supplier or enter manually —</option>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-row">
                   <label>Contractor Name</label>
                   <input
                     value={contractForm.contractor_name}
@@ -1141,7 +1284,7 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
                     placeholder="Subcontractor or crew"
                   />
                 </div>
-                <div className="form-row form-row-full">
+                <div className="form-row">
                   <label>Contractor Email</label>
                   <input
                     type="email"
@@ -1242,6 +1385,148 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
                 <button type="button" className="btn btn-secondary" onClick={() => setShowContractForm(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={creatingContract}>
                   {creatingContract ? "Creating..." : "Create Contract"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Contract Modal ── */}
+      {showEditContractModal && editingContract && (
+        <div className="modal-overlay" onClick={() => setShowEditContractModal(false)}>
+          <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">Edit Install Contract</h2>
+            <form onSubmit={handleSaveContract} className="job-form">
+              <div className="form-grid-2" style={{ marginBottom: 0 }}>
+                <div className="form-row">
+                  <label>Supplier / Contractor</label>
+                  <select
+                    value={editContractForm.supplier_id}
+                    onChange={(e) => {
+                      const sid = e.target.value;
+                      const sup = suppliers.find((s) => s.id === sid);
+                      setEditContractForm((p) => ({
+                        ...p,
+                        supplier_id: sid,
+                        contractor_name: sup ? sup.name : p.contractor_name,
+                        contractor_email: sup ? (sup.email || p.contractor_email) : p.contractor_email,
+                      }));
+                    }}
+                  >
+                    <option value="">— Select supplier or enter manually —</option>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-row">
+                  <label>Contractor Name</label>
+                  <input
+                    value={editContractForm.contractor_name}
+                    onChange={(e) => setEditContractForm((p) => ({ ...p, contractor_name: e.target.value }))}
+                    placeholder="Subcontractor or crew"
+                  />
+                </div>
+                <div className="form-row form-row-full">
+                  <label>Contractor Email</label>
+                  <input
+                    type="email"
+                    value={editContractForm.contractor_email}
+                    onChange={(e) => setEditContractForm((p) => ({ ...p, contractor_email: e.target.value }))}
+                    placeholder="contractor@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <label>Line Items</label>
+                <div className="contract-line-items-editor">
+                  <table className="contract-edit-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 60 }}>Qty</th>
+                        <th>Description</th>
+                        <th style={{ width: 100 }}>Rate ($)</th>
+                        <th style={{ width: 90 }}>Total</th>
+                        <th style={{ width: 36 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {editContractLineItems.map((item, idx) => (
+                        <tr key={idx}>
+                          <td>
+                            <input
+                              type="number" min="0" step="0.01"
+                              value={item.qty}
+                              onChange={(e) => setEditContractLineItems((p) => p.map((li, i) => i === idx ? { ...li, qty: e.target.value } : li))}
+                              className="table-input"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              value={item.description}
+                              onChange={(e) => setEditContractLineItems((p) => p.map((li, i) => i === idx ? { ...li, description: e.target.value } : li))}
+                              placeholder="Description..."
+                              className="table-input"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number" min="0" step="0.01"
+                              value={item.rate}
+                              onChange={(e) => setEditContractLineItems((p) => p.map((li, i) => i === idx ? { ...li, rate: e.target.value } : li))}
+                              className="table-input"
+                            />
+                          </td>
+                          <td className="table-total">
+                            {fmt((parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0))}
+                          </td>
+                          <td>
+                            {editContractLineItems.length > 1 && (
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-sm"
+                                style={{ padding: "3px 7px" }}
+                                onClick={() => setEditContractLineItems((p) => p.filter((_, i) => i !== idx))}
+                              >×</button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colSpan={3} className="table-total" style={{ paddingTop: 8 }}>Total</td>
+                        <td className="table-total" style={{ paddingTop: 8 }}>
+                          {fmt(editContractLineItems.reduce((s, li) => s + (parseFloat(li.qty) || 0) * (parseFloat(li.rate) || 0), 0))}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ marginTop: 8, alignSelf: "flex-start" }}
+                    onClick={() => setEditContractLineItems((p) => [...p, emptyLineItem()])}
+                  >+ Add Line</button>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <label>Scope Notes</label>
+                <textarea
+                  rows={3}
+                  value={editContractForm.scope_notes}
+                  onChange={(e) => setEditContractForm((p) => ({ ...p, scope_notes: e.target.value }))}
+                  placeholder="Installation scope, inclusions, exclusions..."
+                />
+              </div>
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditContractModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={savingContract}>
+                  {savingContract ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
