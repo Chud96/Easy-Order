@@ -1,7 +1,10 @@
 -- ============================================================
 -- JMS Schema — safe to run multiple times
 -- Run in Supabase: SQL Editor → New query → paste → Run
--- The suppliers and standard_flashings tables already exist.
+-- Note: the `suppliers` table is assumed to already exist (created earlier,
+-- outside this file). `standard_flashings` is created in the additions section
+-- at the bottom. If you hit "relation \"suppliers\" does not exist", create it
+-- with the same shape used by the app (id, owner_id, name, email, created_at).
 -- ============================================================
 
 -- ── Jobs ────────────────────────────────────────────────────
@@ -250,3 +253,34 @@ alter table orders add constraint orders_status_check check (status in ('draft',
 alter table install_contracts add column if not exists line_items_json jsonb not null default '[]';
 alter table invoices drop constraint if exists invoices_type_check;
 alter table invoices add constraint invoices_type_check check (type in ('deposit','progress','final'));
+
+-- Standalone orders: allow orders not attached to a job, with their own address details
+alter table orders alter column job_id drop not null;
+alter table orders add column if not exists builder      text not null default '';
+alter table orders add column if not exists site_address text not null default '';
+
+-- Shared flashing catalog: create the table if it doesn't exist, then make it
+-- readable AND editable by every authenticated user (designs are shared, not per-owner).
+create table if not exists standard_flashings (
+  id         uuid        primary key default gen_random_uuid(),
+  owner_id   uuid        references auth.users(id) on delete set null,
+  name       text        not null default '',
+  folds_json jsonb       not null default '[]',
+  created_at timestamptz not null default now()
+);
+
+alter table standard_flashings enable row level security;
+
+do $$
+declare pol record;
+begin
+  for pol in select policyname from pg_policies where tablename = 'standard_flashings' loop
+    execute format('drop policy if exists %I on standard_flashings', pol.policyname);
+  end loop;
+end $$;
+
+create policy "Authenticated users manage shared flashings"
+  on standard_flashings for all
+  to authenticated
+  using (true)
+  with check (true);
