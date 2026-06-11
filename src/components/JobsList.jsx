@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { formatCurrency } from "../utils/format";
+import { JOB_STATUS_ORDER as STATUS_ORDER, JOB_STATUS_LABELS as STATUS_LABELS } from "../utils/statuses";
 import "../styles/JobsList.css";
-
-const STATUS_ORDER = ["quoted", "ordered", "scheduled", "in_progress", "complete", "invoiced"];
-const STATUS_LABELS = {
-  quoted: "Quoted",
-  ordered: "Ordered",
-  scheduled: "Scheduled",
-  in_progress: "In Progress",
-  complete: "Complete",
-  invoiced: "Invoiced",
-};
 
 function generateJobNumber(existingJobs) {
   const year = new Date().getFullYear();
@@ -44,18 +36,19 @@ export default function JobsList({ onSelectJob, userId }) {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    supabase
-      .from("jobs")
-      .select("id, job_number, builder, site_address, total_amount, status, created_at")
-      .eq("owner_id", userId)
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (!active) return;
-        if (error) console.warn("Could not load jobs", error);
-        setJobs(data || []);
-        setLoading(false);
-      });
+    async function load() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("id, job_number, builder, site_address, total_amount, status, created_at")
+        .eq("owner_id", userId)
+        .order("created_at", { ascending: false });
+      if (!active) return;
+      if (error) console.warn("Could not load jobs", error);
+      setJobs(data || []);
+      setLoading(false);
+    }
+    load();
     return () => { active = false; };
   }, [userId]);
 
@@ -116,10 +109,7 @@ export default function JobsList({ onSelectJob, userId }) {
     return matchStatus && matchSearch;
   });
 
-  const fmt = (n) =>
-    n != null
-      ? new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(n)
-      : "—";
+  const fmt = (n) => formatCurrency(n, 0);
 
   return (
     <div className="jobs-list-page">

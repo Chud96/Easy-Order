@@ -2,37 +2,20 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { exportCombinedOrderToPdf } from "../utils/orderFormPdf";
 import { exportContractToPdf } from "../utils/contractPdf";
+import { formatCurrency as fmt, formatBytes as fmtBytes } from "../utils/format";
+import {
+  JOB_STATUS_ORDER as STATUS_ORDER,
+  JOB_STATUS_LABELS as STATUS_LABELS,
+  ORDER_STATUS_LABELS,
+  INVOICE_TYPE_LABELS,
+  INVOICE_STATUS_LABELS,
+  CONTRACT_STATUS_LABELS,
+  PO_STATUS_LABELS,
+} from "../utils/statuses";
 import "../styles/JobDetail.css";
-
-const STATUS_ORDER = ["quoted", "ordered", "scheduled", "in_progress", "complete", "invoiced"];
-const STATUS_LABELS = {
-  quoted: "Quoted",
-  ordered: "Ordered",
-  scheduled: "Scheduled",
-  in_progress: "In Progress",
-  complete: "Complete",
-  invoiced: "Invoiced",
-};
-const ORDER_STATUS_LABELS = { draft: "Draft", sent: "Sent", delivered: "Delivered", in_progress: "In Progress", complete: "Complete" };
-const INVOICE_TYPE_LABELS = { deposit: "Deposit", progress: "Progress", final: "Final" };
-const INVOICE_STATUS_LABELS = { draft: "Draft", sent: "Sent", paid: "Paid" };
-const CONTRACT_STATUS_LABELS = { draft: "Draft", sent: "Sent", signed: "Signed" };
-const PO_STATUS_LABELS = { draft: "Draft", sent: "Sent", received: "Received" };
 
 const STORAGE_BUCKET = "job-files";
 const FILE_CATEGORIES = ["Plan", "Order", "Contract", "Other"];
-
-const fmt = (n) =>
-  n != null
-    ? new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 2 }).format(n)
-    : "—";
-
-const fmtBytes = (n) => {
-  if (!n) return "";
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-};
 
 function generateOrderNumber(existingOrders, jobNumber) {
   const prefix = jobNumber ? `${jobNumber}-ORD` : "ORD";
@@ -44,8 +27,47 @@ function generateOrderNumber(existingOrders, jobNumber) {
   return `${prefix}-${String(next).padStart(2, "0")}`;
 }
 
+function generateInvoiceNumber(existingInvoices, jobNumber) {
+  const prefix = jobNumber || "JOB";
+  const nums = existingInvoices.map((inv) => {
+    const m = inv.invoice_number?.match(/INV(\d+)$/i);
+    return m ? parseInt(m[1], 10) : 0;
+  });
+  const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+  return `${prefix}-INV${String(next).padStart(2, "0")}`;
+}
+
+function generatePoNumber(existingPos, order) {
+  const base = `${order?.order_number || order?.id?.slice(0, 8) || "ORD"}-PO`;
+  const sameOrder = existingPos.filter((po) => po.order_id === order?.id);
+  return sameOrder.length === 0 ? base : `${base}${sameOrder.length + 1}`;
+}
+
 function emptyLineItem() {
   return { qty: "1", description: "", rate: "" };
+}
+
+// Opens the user's mail client with a pre-filled install-contract email.
+function openContractEmail(contract, job, orderNumber) {
+  if (!contract.contractor_email) return;
+  const lineItems = Array.isArray(contract.line_items_json) ? contract.line_items_json : [];
+  const total = lineItems.reduce((s, li) => s + (li.qty || 0) * (li.rate || 0), 0);
+  const subject = `Install Contract — ${job?.site_address || ""}${orderNumber ? ` (${orderNumber})` : ""}`;
+  const body = [
+    `Hi ${contract.contractor_name || ""},`,
+    "",
+    `Please find your install contract details below for the job at ${job?.site_address || "the site"}.`,
+    "",
+    `Order: ${orderNumber}`,
+    `Total: ${fmt(total)}`,
+    "",
+    contract.scope_notes ? `Scope:\n${contract.scope_notes}` : "",
+    "",
+    "Please confirm your acceptance of this contract.",
+  ].join("\n");
+  window.open(
+    `mailto:${contract.contractor_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  );
 }
 
 export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, userId }) {
@@ -246,6 +268,44 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
     }
   };
 
+  // Fetches an order with its items + flashings and renders the combined PDF.
+  const exportOrderPdf = useCallback(async (orderId) => {
+    const [orderRes, itemsRes, flashingsRes] = await Promise.all([
+      supabase.from("orders").select("*").eq("id", orderId).single(),
+      supabase.from("order_items").select("*").eq("order_id", orderId).order("sort_order"),
+      supabase.from("flashing_items").select("*").eq("order_id", orderId).order("sort_order"),
+    ]);
+    const o = orderRes.data;
+    const supplier = suppliers.find((s) => s.id === o.supplier_id);
+    const standardSelections = (itemsRes.data || []).map((row) => ({
+      category: row.category,
+      subcategory: row.subcategory,
+      item: row.item,
+      qty: row.qty,
+      length: row.length,
+    }));
+    const flashingOrders = (flashingsRes.data || []).map((row) => ({
+      folds: Array.isArray(row.folds_json) ? row.folds_json : [],
+      orderItems: Array.isArray(row.order_items_json) ? row.order_items_json : [],
+    }));
+    await exportCombinedOrderToPdf({
+      orderInfo: {
+        builder: job.builder || "",
+        address: job.site_address || "",
+        orderNumber: o.order_number || "",
+        deliveryDate: o.delivery_date || "",
+        roofColour: o.roof_colour || "",
+        fasciaColour: o.fascia_colour || "",
+        gutterColour: o.gutter_colour || "",
+        notes: o.notes || "",
+      },
+      supplier,
+      standardSelections,
+      flashingOrders,
+      createdAt: Date.now(),
+    });
+  }, [job, suppliers]);
+
   const handleOrderClick = async (order) => {
     if (order.file_path) {
       handleOpenFile(order.file_path);
@@ -257,40 +317,7 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
     }
     setGeneratingPdf(true);
     try {
-      const [orderRes, itemsRes, flashingsRes] = await Promise.all([
-        supabase.from("orders").select("*").eq("id", order.id).single(),
-        supabase.from("order_items").select("*").eq("order_id", order.id).order("sort_order"),
-        supabase.from("flashing_items").select("*").eq("order_id", order.id).order("sort_order"),
-      ]);
-      const o = orderRes.data;
-      const supplier = suppliers.find((s) => s.id === o.supplier_id);
-      const standardSelections = (itemsRes.data || []).map((row) => ({
-        category: row.category,
-        subcategory: row.subcategory,
-        item: row.item,
-        qty: row.qty,
-        length: row.length,
-      }));
-      const flashingOrders = (flashingsRes.data || []).map((row) => ({
-        folds: Array.isArray(row.folds_json) ? row.folds_json : [],
-        orderItems: Array.isArray(row.order_items_json) ? row.order_items_json : [],
-      }));
-      await exportCombinedOrderToPdf({
-        orderInfo: {
-          builder: job.builder || "",
-          address: job.site_address || "",
-          orderNumber: o.order_number || "",
-          deliveryDate: o.delivery_date || "",
-          roofColour: o.roof_colour || "",
-          fasciaColour: o.fascia_colour || "",
-          gutterColour: o.gutter_colour || "",
-          notes: o.notes || "",
-        },
-        supplier,
-        standardSelections,
-        flashingOrders,
-        createdAt: Date.now(),
-      });
+      await exportOrderPdf(order.id);
     } catch (err) {
       alert(`PDF generation failed: ${err.message}`);
     } finally {
@@ -311,8 +338,7 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
       return;
     }
     setCreatingInvoice(true);
-    const count = invoices.length + 1;
-    const invoice_number = `${job.job_number || "JOB"}-INV${String(count).padStart(2, "0")}`;
+    const invoice_number = generateInvoiceNumber(invoices, job.job_number);
     const { data, error } = await supabase
       .from("invoices")
       .insert([{
@@ -403,23 +429,7 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
     if (error) { alert(`Could not create contract: ${error.message}`); return; }
     setContracts((prev) => [...prev, data]);
     setShowContractForm(false);
-    if (data.contractor_email) {
-      const orderNum = orders.find((o) => o.id === data.order_id)?.order_number || "";
-      const subject = `Install Contract — ${job?.site_address || ""}${orderNum ? ` (${orderNum})` : ""}`;
-      const body = [
-        `Hi ${data.contractor_name || ""},`,
-        "",
-        `Please find your install contract details below for the job at ${job?.site_address || "the site"}.`,
-        "",
-        `Order: ${orderNum}`,
-        `Total: ${new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(amount)}`,
-        "",
-        data.scope_notes ? `Scope:\n${data.scope_notes}` : "",
-        "",
-        "Please confirm your acceptance of this contract.",
-      ].filter((l) => l !== undefined).join("\n");
-      window.open(`mailto:${data.contractor_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-    }
+    openContractEmail(data, job, getOrderNumber(data.order_id));
   };
 
   const handleSaveContract = async (e) => {
@@ -472,7 +482,7 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
     if (!poForm.order_id) { alert("Select an order."); return; }
     setCreatingPo(true);
     const selectedOrder = orders.find((o) => o.id === poForm.order_id);
-    const po_number = `${selectedOrder?.order_number || poForm.order_id.slice(0, 8)}-PO`;
+    const po_number = generatePoNumber(purchaseOrders, selectedOrder || { id: poForm.order_id });
     const { data, error } = await supabase
       .from("purchase_orders")
       .insert([{
@@ -510,40 +520,7 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
   const handleExportPoPdf = async (po) => {
     setGeneratingPdf(true);
     try {
-      const [orderRes, itemsRes, flashingsRes] = await Promise.all([
-        supabase.from("orders").select("*").eq("id", po.order_id).single(),
-        supabase.from("order_items").select("*").eq("order_id", po.order_id).order("sort_order"),
-        supabase.from("flashing_items").select("*").eq("order_id", po.order_id).order("sort_order"),
-      ]);
-      const o = orderRes.data;
-      const supplier = suppliers.find((s) => s.id === o.supplier_id);
-      const standardSelections = (itemsRes.data || []).map((row) => ({
-        category: row.category,
-        subcategory: row.subcategory,
-        item: row.item,
-        qty: row.qty,
-        length: row.length,
-      }));
-      const flashingOrders = (flashingsRes.data || []).map((row) => ({
-        folds: Array.isArray(row.folds_json) ? row.folds_json : [],
-        orderItems: Array.isArray(row.order_items_json) ? row.order_items_json : [],
-      }));
-      await exportCombinedOrderToPdf({
-        orderInfo: {
-          builder: job.builder || "",
-          address: job.site_address || "",
-          orderNumber: o.order_number || "",
-          deliveryDate: o.delivery_date || "",
-          roofColour: o.roof_colour || "",
-          fasciaColour: o.fascia_colour || "",
-          gutterColour: o.gutter_colour || "",
-          notes: o.notes || "",
-        },
-        supplier,
-        standardSelections,
-        flashingOrders,
-        createdAt: Date.now(),
-      });
+      await exportOrderPdf(po.order_id);
     } catch (err) {
       alert(`PDF export failed: ${err.message}`);
     } finally {
@@ -894,23 +871,7 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
                         {contract.contractor_email && (
                           <button
                             className="btn btn-secondary btn-sm"
-                            onClick={() => {
-                              const orderNum = getOrderNumber(contract.order_id);
-                              const contractTotal = (Array.isArray(contract.line_items_json) ? contract.line_items_json : [])
-                                .reduce((s, li) => s + (li.qty || 0) * (li.rate || 0), 0);
-                              const subject = `Install Contract — ${job?.site_address || ""}${orderNum ? ` (${orderNum})` : ""}`;
-                              const body = [
-                                `Hi ${contract.contractor_name || ""},`,
-                                "",
-                                `Please find your install contract details for the job at ${job?.site_address || "the site"}.`,
-                                "",
-                                `Order: ${orderNum}`,
-                                `Total: ${new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(contractTotal)}`,
-                                "",
-                                contract.scope_notes ? `Scope:\n${contract.scope_notes}` : "",
-                              ].join("\n");
-                              window.open(`mailto:${contract.contractor_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-                            }}
+                            onClick={() => openContractEmail(contract, job, getOrderNumber(contract.order_id))}
                           >Email</button>
                         )}
                         <button className="btn btn-secondary btn-sm" onClick={() => openEditContract(contract)}>Edit</button>
