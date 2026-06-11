@@ -1,0 +1,206 @@
+.dash {
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dash-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* ── KPI cards ── */
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.dash-kpi {
+  background: #fff;
+  border: 1px solid #d6dfec;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dash-kpi:first-child {
+  cursor: pointer;
+}
+
+.dash-kpi-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dash-kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #17253c;
+  line-height: 1.1;
+}
+
+.dash-kpi-sub {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.dash-kpi-alert {
+  border-color: #f3c0c8;
+  background: #fff7f8;
+}
+
+.dash-kpi-alert .dash-kpi-value {
+  color: #b91c1c;
+}
+
+/* ── Panel grid ── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dash-panel {
+  background: #fff;
+  border: 1px solid #d6dfec;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.dash-panel-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #17253c;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dash-link-btn {
+  border: none;
+  background: transparent;
+  color: #2351be;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dash-link-btn:hover {
+  text-decoration: underline;
+}
+
+.dash-empty {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+  padding: 12px 0;
+}
+
+/* ── Jobs by status ── */
+.dash-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 2px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dash-status-row:last-child {
+  border-bottom: none;
+}
+
+.dash-status-count {
+  font-weight: 800;
+  color: #17253c;
+  font-size: 16px;
+}
+
+/* ── Lists ── */
+.dash-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dash-list-item:last-child {
+  border-bottom: none;
+}
+
+.dash-list-item.clickable {
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.1s;
+}
+
+.dash-list-item.clickable:hover {
+  background: #f8faff;
+}
+
+.dash-list-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dash-list-title {
+  font-weight: 700;
+  color: #17253c;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-list-sub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.dash-overdue {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.dash-list-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .dash-kpis { grid-template-columns: repeat(2, 1fr); }
+  .dash-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .dash-kpis { grid-template-columns: 1fr; }
+}

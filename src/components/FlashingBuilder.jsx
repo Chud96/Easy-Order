@@ -6,7 +6,6 @@ import { STANDARD_FLASHING_DESIGNS } from "../data/standardFlashings";
 import "../styles/FlashingBuilder.css";
 
 const SAVED_ORDERS_STORAGE_KEY = "roofing-app.saved-orders.v1";
-const CUSTOM_FLASHING_STORAGE_KEY = "roofing-app.custom-flashings.v1";
 
 const DRAW_WIDTH = 760;
 const DRAW_HEIGHT = 320;
@@ -42,6 +41,9 @@ export default function FlashingBuilder({
   savedOrders: externalSavedOrders,
   onSavedOrdersChange,
   standardDesigns,
+  onAddDesign,
+  onUpdateDesign,
+  onDeleteDesign,
 }) {
   const drawSurfaceRef = useRef(null);
 
@@ -60,15 +62,6 @@ export default function FlashingBuilder({
       : STANDARD_FLASHING_DESIGNS;
   const [selectedDesignId, setSelectedDesignId] = useState(baseDesigns[0]?.id || "");
   const [customPresetName, setCustomPresetName] = useState("");
-  const [customDesigns, setCustomDesigns] = useState(() => {
-    try {
-      const raw = localStorage.getItem(CUSTOM_FLASHING_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (error) {
-      console.warn("Unable to read custom flashing designs", error);
-      return [];
-    }
-  });
 
   const [specForm, setSpecForm] = useState({
     qty: 1,
@@ -89,12 +82,14 @@ export default function FlashingBuilder({
   const savedOrders = externalSavedOrders ?? localSavedOrders;
   const setSavedOrders = onSavedOrdersChange || setLocalSavedOrders;
 
-  const allDesigns = useMemo(() => [...baseDesigns, ...customDesigns], [baseDesigns, customDesigns]);
+  const allDesigns = useMemo(() => baseDesigns, [baseDesigns]);
   const resolvedSelectedDesignId = allDesigns.some((item) => item.id === selectedDesignId)
     ? selectedDesignId
     : allDesigns[0]?.id || "";
   const selectedDesign = allDesigns.find((item) => item.id === resolvedSelectedDesignId);
-  const isSelectedCustomDesign = selectedDesign?.id?.startsWith("custom-");
+  // Seeded fallback designs ("std-…") live in code and can't be edited; everything
+  // else is a shared DB design that any user can update or delete.
+  const isEditableDesign = !!selectedDesign && !String(selectedDesign.id).startsWith("std-");
 
   useEffect(() => {
     try {
@@ -103,14 +98,6 @@ export default function FlashingBuilder({
       console.warn("Unable to write saved orders to localStorage", error);
     }
   }, [savedOrders]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(CUSTOM_FLASHING_STORAGE_KEY, JSON.stringify(customDesigns));
-    } catch (error) {
-      console.warn("Unable to write custom flashing designs", error);
-    }
-  }, [customDesigns]);
 
   const handleDrawAreaClick = (e) => {
     if (!drawMode || profileConfirmed) {
@@ -205,50 +192,46 @@ export default function FlashingBuilder({
     setConfirmed(false);
   };
 
-  const addCustomPreset = () => {
+  const addCustomPreset = async () => {
     const name = customPresetName.trim();
     if (!name) {
       alert("Enter a preset name first.");
       return;
     }
     if (folds.length === 0) {
-      alert("Create or load a profile before saving a custom preset.");
+      alert("Create or load a profile before saving a catalog design.");
       return;
     }
-    const newPreset = {
-      id: `custom-${Date.now()}`,
-      name,
-      folds: copyFolds(folds),
-    };
-    setCustomDesigns((prev) => [...prev, newPreset]);
-    setSelectedDesignId(newPreset.id);
-    setCustomPresetName(newPreset.name);
+    if (!onAddDesign) return;
+    const created = await onAddDesign({ name, folds: copyFolds(folds) });
+    if (created) {
+      setSelectedDesignId(created.id);
+      setCustomPresetName(created.name);
+    }
   };
 
-  const updateCustomPreset = () => {
-    if (!isSelectedCustomDesign) {
+  const updateCustomPreset = async () => {
+    if (!isEditableDesign || !onUpdateDesign) {
       return;
     }
     const name = customPresetName.trim();
     if (!name) {
-      alert("Preset name cannot be empty.");
+      alert("Design name cannot be empty.");
       return;
     }
-    setCustomDesigns((prev) =>
-      prev.map((item) =>
-        item.id === resolvedSelectedDesignId ? { ...item, name, folds: copyFolds(folds) } : item
-      )
-    );
+    await onUpdateDesign(resolvedSelectedDesignId, { name, folds: copyFolds(folds) });
   };
 
-  const deleteCustomPreset = () => {
-    if (!isSelectedCustomDesign) {
+  const deleteCustomPreset = async () => {
+    if (!isEditableDesign || !onDeleteDesign) {
       return;
     }
-    const next = customDesigns.filter((item) => item.id !== resolvedSelectedDesignId);
-    setCustomDesigns(next);
-    setSelectedDesignId(baseDesigns[0]?.id || "");
-    setCustomPresetName("");
+    if (!window.confirm("Delete this catalog design for all users?")) return;
+    const ok = await onDeleteDesign(resolvedSelectedDesignId);
+    if (ok) {
+      setSelectedDesignId(baseDesigns[0]?.id || "");
+      setCustomPresetName("");
+    }
   };
 
   const addLengthToDrawing = () => {
@@ -383,7 +366,9 @@ export default function FlashingBuilder({
                   const nextId = e.target.value;
                   setSelectedDesignId(nextId);
                   const nextDesign = allDesigns.find((item) => item.id === nextId);
-                  setCustomPresetName(nextDesign?.id?.startsWith("custom-") ? nextDesign.name : "");
+                  setCustomPresetName(
+                    nextDesign && !String(nextDesign.id).startsWith("std-") ? nextDesign.name : ""
+                  );
                 }}
               >
                 {allDesigns.map((design) => (
@@ -410,14 +395,14 @@ export default function FlashingBuilder({
               <button
                 className="fb-btn fb-btn-muted"
                 onClick={updateCustomPreset}
-                disabled={!isSelectedCustomDesign}
+                disabled={!isEditableDesign}
               >
                 Update
               </button>
               <button
                 className="fb-btn fb-btn-danger"
                 onClick={deleteCustomPreset}
-                disabled={!isSelectedCustomDesign}
+                disabled={!isEditableDesign}
               >
                 Delete
               </button>

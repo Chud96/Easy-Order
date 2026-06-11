@@ -5,14 +5,8 @@ import FlashingBuilder from "./FlashingBuilder";
 import FlashingPreview from "./FlashingPreview";
 import { calculateGirth } from "../utils/geometry";
 import { exportCombinedOrderToPdf } from "../utils/orderFormPdf";
+import { ORDER_STATUS_LABELS } from "../utils/statuses";
 import "../styles/OrderDetail.css";
-
-const ORDER_STATUS_LABELS = { draft: "Draft", sent: "Sent", delivered: "Delivered", in_progress: "In Progress", complete: "Complete" };
-
-const fmt = (n) =>
-  n != null
-    ? new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 2 }).format(n)
-    : "—";
 
 function groupByCategory(items) {
   return items.reduce((acc, row) => {
@@ -23,7 +17,7 @@ function groupByCategory(items) {
   }, {});
 }
 
-export default function OrderDetail({ orderId, jobId, onBack, suppliers, standardFlashingDesigns }) {
+export default function OrderDetail({ orderId, onBack, backLabel, suppliers, standardFlashingDesigns, onAddDesign, onUpdateDesign, onDeleteDesign }) {
   const [order, setOrder] = useState(null);
   const [job, setJob] = useState(null);
   const [standardSelections, setStandardSelections] = useState([]);
@@ -34,6 +28,8 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
 
   const [orderForm, setOrderForm] = useState({
     supplier_id: "",
+    builder: "",
+    site_address: "",
     roof_colour: "",
     fascia_colour: "",
     gutter_colour: "",
@@ -44,9 +40,8 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [orderRes, jobRes, itemsRes, flashingsRes] = await Promise.all([
+    const [orderRes, itemsRes, flashingsRes] = await Promise.all([
       supabase.from("orders").select("*").eq("id", orderId).single(),
-      supabase.from("jobs").select("job_number, builder, site_address").eq("id", jobId).single(),
       supabase.from("order_items").select("*").eq("order_id", orderId).order("sort_order"),
       supabase.from("flashing_items").select("*").eq("order_id", orderId).order("sort_order"),
     ]);
@@ -56,6 +51,8 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
       setOrder(o);
       setOrderForm({
         supplier_id: o.supplier_id || "",
+        builder: o.builder || "",
+        site_address: o.site_address || "",
         roof_colour: o.roof_colour || "",
         fascia_colour: o.fascia_colour || "",
         gutter_colour: o.gutter_colour || "",
@@ -63,9 +60,18 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
         notes: o.notes || "",
         status: o.status || "draft",
       });
+      // Job-linked orders inherit address details from the job; standalone orders use their own.
+      if (o.job_id) {
+        const { data: jobData } = await supabase
+          .from("jobs")
+          .select("job_number, builder, site_address")
+          .eq("id", o.job_id)
+          .single();
+        setJob(jobData || null);
+      } else {
+        setJob(null);
+      }
     }
-
-    setJob(jobRes.data || null);
 
     setStandardSelections(
       (itemsRes.data || []).map((row) => ({
@@ -87,7 +93,7 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
     );
 
     setLoading(false);
-  }, [orderId, jobId]);
+  }, [orderId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -103,6 +109,8 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
         .from("orders")
         .update({
           supplier_id: orderForm.supplier_id || null,
+          builder: orderForm.builder,
+          site_address: orderForm.site_address,
           roof_colour: orderForm.roof_colour,
           fascia_colour: orderForm.fascia_colour,
           gutter_colour: orderForm.gutter_colour,
@@ -157,8 +165,8 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
     const supplier = suppliers.find((s) => s.id === orderForm.supplier_id);
     await exportCombinedOrderToPdf({
       orderInfo: {
-        builder: job?.builder || "",
-        address: job?.site_address || "",
+        builder: job?.builder || order?.builder || "",
+        address: job?.site_address || order?.site_address || "",
         orderNumber: order?.order_number || "",
         deliveryDate: order?.delivery_date || "",
         roofColour: order?.roof_colour || "",
@@ -185,11 +193,14 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
   ];
 
   const groupedSelections = Object.values(groupByCategory(standardSelections));
+  const isStandalone = !order.job_id;
+  const builderName = job?.builder || order.builder || "";
+  const addressText = job?.site_address || order.site_address || "";
 
   return (
     <div className="order-detail-page">
       <div className="order-detail-breadcrumb">
-        <button className="breadcrumb-back" onClick={onBack}>← {job?.job_number || "Job"}</button>
+        <button className="breadcrumb-back" onClick={onBack}>← {backLabel || job?.job_number || "Back"}</button>
         <span className="breadcrumb-sep">/</span>
         <span className="breadcrumb-current">{order.order_number || "Order"}</span>
       </div>
@@ -197,7 +208,11 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
       <div className="order-detail-head">
         <div>
           <h1 className="order-detail-title">{order.order_number || "Order"}</h1>
-          <p className="order-detail-subtitle">{job?.builder} — {job?.site_address}</p>
+          <p className="order-detail-subtitle">
+            {builderName || addressText
+              ? `${builderName}${builderName && addressText ? " — " : ""}${addressText}`
+              : "Standalone order"}
+          </p>
         </div>
         <div className="order-detail-head-meta">
           <span className={`status-badge ${order.status}`}>{ORDER_STATUS_LABELS[order.status] || order.status}</span>
@@ -229,8 +244,8 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
         {activeTab === "flashings" && (
           <FlashingBuilder
             orderInfo={{
-              builder: job?.builder || "",
-              address: job?.site_address || "",
+              builder: builderName,
+              address: addressText,
               orderNumber: order.order_number || "",
               deliveryDate: order.delivery_date || "",
               roofColour: order.roof_colour || "",
@@ -240,6 +255,9 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
             savedOrders={flashingOrders}
             onSavedOrdersChange={setFlashingOrders}
             standardDesigns={standardFlashingDesigns}
+            onAddDesign={onAddDesign}
+            onUpdateDesign={onUpdateDesign}
+            onDeleteDesign={onDeleteDesign}
           />
         )}
 
@@ -248,6 +266,18 @@ export default function OrderDetail({ orderId, jobId, onBack, suppliers, standar
             <section className="summary-section">
               <h3 className="summary-section-title">Order Details</h3>
               <div className="summary-form-grid">
+                {isStandalone && (
+                  <>
+                    <div className="form-row">
+                      <label>Builder / Customer</label>
+                      <input name="builder" value={orderForm.builder} onChange={handleOrderFormChange} placeholder="Builder or customer name" />
+                    </div>
+                    <div className="form-row">
+                      <label>Site Address</label>
+                      <input name="site_address" value={orderForm.site_address} onChange={handleOrderFormChange} placeholder="123 Example St, Suburb" />
+                    </div>
+                  </>
+                )}
                 <div className="form-row">
                   <label>Supplier</label>
                   <select name="supplier_id" value={orderForm.supplier_id} onChange={handleOrderFormChange}>

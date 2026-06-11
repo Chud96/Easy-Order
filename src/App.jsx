@@ -1,7 +1,9 @@
 import { useEffect, useState, Component } from "react";
 import LoginPage from "./components/LoginPage";
+import Dashboard from "./components/Dashboard";
 import JobsList from "./components/JobsList";
 import JobDetail from "./components/JobDetail";
+import OrdersList from "./components/OrdersList";
 import OrderDetail from "./components/OrderDetail";
 import ScheduleBoard from "./components/ScheduleBoard";
 import { supabase } from "./lib/supabase";
@@ -34,7 +36,7 @@ class ErrorBoundary extends Component {
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [view, setView] = useState("jobs"); // 'jobs' | 'schedule' | 'admin'
+  const [view, setView] = useState("dashboard"); // 'dashboard' | 'jobs' | 'schedule' | 'admin'
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
@@ -84,7 +86,6 @@ export default function App() {
     supabase
       .from("standard_flashings")
       .select("id, name, folds_json")
-      .eq("owner_id", currentUser.id)
       .order("created_at", { ascending: true })
       .then(({ data, error }) => {
         if (!active) return;
@@ -135,6 +136,10 @@ export default function App() {
     setSelectedOrderId(null);
   };
 
+  const handleBackToOrders = () => {
+    setSelectedOrderId(null);
+  };
+
   const handleViewChange = (newView) => {
     setView(newView);
     setSelectedJobId(null);
@@ -171,37 +176,66 @@ export default function App() {
     return folds;
   };
 
-  const addStandardFlashing = async () => {
-    const name = newFlashing.name.trim();
-    if (!name) { alert("Design name is required."); return; }
-    let folds;
-    try { folds = parseFoldsJson(newFlashing.foldsJson); } catch (e) { alert(e.message); return; }
+  // Shared flashing catalog CRUD — designs are visible to and editable by all users.
+  const toDesign = (row) => ({
+    id: row.id,
+    name: row.name,
+    folds: Array.isArray(row.folds_json) ? row.folds_json : [],
+  });
+
+  const addStandardFlashingDesign = async ({ name, folds }) => {
     const { data, error } = await supabase
       .from("standard_flashings")
       .insert([{ owner_id: currentUser.id, name, folds_json: folds }])
       .select("id, name, folds_json")
       .single();
-    if (error) { alert(`Could not add flashing: ${error.message}`); return; }
-    setStandardFlashingDesigns((prev) => [
-      ...prev,
-      { id: data.id, name: data.name, folds: Array.isArray(data.folds_json) ? data.folds_json : [] },
-    ]);
-    setNewFlashing({ name: "", foldsJson: '[{"length":100,"angle":0}]' });
+    if (error) { alert(`Could not add flashing: ${error.message}`); return null; }
+    const design = toDesign(data);
+    setStandardFlashingDesigns((prev) => [...prev, design]);
+    return design;
   };
 
-  const deleteStandardFlashing = async (id) => {
-    const { error } = await supabase.from("standard_flashings").delete().eq("id", id).eq("owner_id", currentUser.id);
-    if (error) { alert(`Could not delete flashing: ${error.message}`); return; }
-    setStandardFlashingDesigns((prev) => prev.filter((d) => d.id !== id));
+  const updateStandardFlashingDesign = async (id, { name, folds }) => {
+    const { data, error } = await supabase
+      .from("standard_flashings")
+      .update({ name, folds_json: folds })
+      .eq("id", id)
+      .select("id, name, folds_json")
+      .single();
+    if (error) { alert(`Could not update flashing: ${error.message}`); return null; }
+    const design = toDesign(data);
+    setStandardFlashingDesigns((prev) => prev.map((d) => (d.id === id ? design : d)));
+    return design;
   };
+
+  const deleteStandardFlashingDesign = async (id) => {
+    const { error } = await supabase.from("standard_flashings").delete().eq("id", id);
+    if (error) { alert(`Could not delete flashing: ${error.message}`); return false; }
+    setStandardFlashingDesigns((prev) => prev.filter((d) => d.id !== id));
+    return true;
+  };
+
+  const addStandardFlashing = async () => {
+    const name = newFlashing.name.trim();
+    if (!name) { alert("Design name is required."); return; }
+    let folds;
+    try { folds = parseFoldsJson(newFlashing.foldsJson); } catch (e) { alert(e.message); return; }
+    const created = await addStandardFlashingDesign({ name, folds });
+    if (created) setNewFlashing({ name: "", foldsJson: '[{"length":100,"angle":0}]' });
+  };
+
+  const deleteStandardFlashing = (id) => deleteStandardFlashingDesign(id);
 
   if (!currentUser) {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  const showOrderDetail = view === "jobs" && selectedJobId && selectedOrderId;
+  const showJobOrderDetail = view === "jobs" && selectedJobId && selectedOrderId;
+  const showStandaloneOrderDetail = view === "orders" && selectedOrderId;
+  const showOrderDetail = showJobOrderDetail || showStandaloneOrderDetail;
   const showJobDetail = view === "jobs" && selectedJobId && !selectedOrderId;
   const showJobsList = view === "jobs" && !selectedJobId;
+  const showOrdersList = view === "orders" && !selectedOrderId;
 
   return (
     <ErrorBoundary>
@@ -211,10 +245,22 @@ export default function App() {
             <div className="app-shell-title">TM Roofing</div>
             <nav className="app-shell-nav">
               <button
+                className={view === "dashboard" ? "active" : ""}
+                onClick={() => handleViewChange("dashboard")}
+              >
+                Dashboard
+              </button>
+              <button
                 className={view === "jobs" ? "active" : ""}
                 onClick={() => handleViewChange("jobs")}
               >
                 Jobs
+              </button>
+              <button
+                className={view === "orders" ? "active" : ""}
+                onClick={() => handleViewChange("orders")}
+              >
+                Orders
               </button>
               <button
                 className={view === "schedule" ? "active" : ""}
@@ -237,6 +283,13 @@ export default function App() {
         </header>
 
         <main className="app-shell-body">
+          {view === "dashboard" && (
+            <Dashboard
+              userId={currentUser.id}
+              onSelectJob={handleSelectJob}
+              onViewChange={handleViewChange}
+            />
+          )}
           {showJobsList && (
             <JobsList onSelectJob={handleSelectJob} userId={currentUser.id} />
           )}
@@ -249,13 +302,23 @@ export default function App() {
               userId={currentUser.id}
             />
           )}
+          {showOrdersList && (
+            <OrdersList
+              onSelectOrder={handleSelectOrder}
+              suppliers={suppliers}
+              userId={currentUser.id}
+            />
+          )}
           {showOrderDetail && (
             <OrderDetail
               orderId={selectedOrderId}
-              jobId={selectedJobId}
-              onBack={handleBackToJob}
+              onBack={showStandaloneOrderDetail ? handleBackToOrders : handleBackToJob}
+              backLabel={showStandaloneOrderDetail ? "Orders" : undefined}
               suppliers={suppliers}
               standardFlashingDesigns={standardFlashingDesigns}
+              onAddDesign={addStandardFlashingDesign}
+              onUpdateDesign={updateStandardFlashingDesign}
+              onDeleteDesign={deleteStandardFlashingDesign}
               userId={currentUser.id}
             />
           )}

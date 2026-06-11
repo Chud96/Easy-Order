@@ -125,7 +125,7 @@ async function migrateLocalStorage(userId) {
     if (!Array.isArray(parsed) || !parsed.length) return;
     const rows = parsed
       .filter((e) => e && (e.builder || e.title))
-      .map((e, i) => {
+      .map((e) => {
         const category = CATEGORY_NAMES.includes(e.category) ? e.category : CATEGORY_NAMES[0];
         const maxRows = CATEGORY_ROW_COUNTS[category];
         return {
@@ -179,7 +179,7 @@ export default function ScheduleBoard() {
         supabase.from("schedule_entries").select("*").order("start_date"),
         supabase
           .from("orders")
-          .select("id, order_number, delivery_date, jobs(builder, site_address), suppliers(name)")
+          .select("id, order_number, delivery_date, job_id, jobs(builder, site_address), suppliers(name)")
           .order("created_at", { ascending: false }),
       ]);
 
@@ -349,12 +349,11 @@ export default function ScheduleBoard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    const linkedOrder = draft.order_id ? orders.find((o) => o.id === draft.order_id) : null;
     const row = {
       owner_id: user.id,
       order_id: draft.order_id || null,
-      job_id: draft.order_id
-        ? (orders.find((o) => o.id === draft.order_id)?.jobs ? null : null)
-        : null,
+      job_id: linkedOrder?.job_id || null,
       builder: draft.builder.trim(),
       address: draft.address.trim(),
       info: draft.info.trim(),
