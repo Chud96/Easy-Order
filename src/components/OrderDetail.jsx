@@ -5,6 +5,7 @@ import FlashingBuilder from "./FlashingBuilder";
 import FlashingPreview from "./FlashingPreview";
 import { calculateGirth } from "../utils/geometry";
 import { exportCombinedOrderToPdf } from "../utils/orderFormPdf";
+import { openOrderEmail } from "../utils/orderEmail";
 import { ORDER_STATUS_LABELS } from "../utils/statuses";
 import "../styles/OrderDetail.css";
 
@@ -178,6 +179,24 @@ export default function OrderDetail({ orderId, onBack, backLabel, suppliers, sta
       standardSelections,
       flashingOrders,
       createdAt: Date.now(),
+    });
+  };
+
+  const handleEmailOrder = () => {
+    openOrderEmail({
+      builder: job?.builder || order?.builder || "",
+      address: job?.site_address || order?.site_address || "",
+      order: {
+        order_number: order?.order_number || "",
+        delivery_date: orderForm.delivery_date,
+        roof_colour: orderForm.roof_colour,
+        fascia_colour: orderForm.fascia_colour,
+        gutter_colour: orderForm.gutter_colour,
+        notes: orderForm.notes,
+      },
+      supplier: suppliers.find((s) => s.id === orderForm.supplier_id),
+      standardSelections,
+      flashingOrders,
     });
   };
 
@@ -378,6 +397,7 @@ export default function OrderDetail({ orderId, onBack, backLabel, suppliers, sta
             )}
 
             <div className="summary-actions">
+              <button className="btn btn-secondary" onClick={handleEmailOrder}>Email to Supplier</button>
               <button className="btn btn-secondary" onClick={handleExportPdf}>Export PDF</button>
               <button className="btn btn-primary" onClick={handleSaveOrder} disabled={saving}>
                 {saving ? "Saving..." : "Save Order"}

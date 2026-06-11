@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { exportCombinedOrderToPdf } from "../utils/orderFormPdf";
 import { exportContractToPdf } from "../utils/contractPdf";
+import { emailOrderById } from "../utils/orderEmail";
 import { formatCurrency as fmt, formatBytes as fmtBytes } from "../utils/format";
 import {
   JOB_STATUS_ORDER as STATUS_ORDER,
@@ -751,6 +752,10 @@ export default function JobDetail({ jobId, onBack, onSelectOrder, suppliers, use
                             onClick={(e) => { e.stopPropagation(); onSelectOrder(order.id); }}
                           >Edit</button>
                         )}
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => { e.stopPropagation(); emailOrderById(order.id, suppliers); }}
+                        >Email</button>
                         <button className="btn btn-danger btn-sm" onClick={(e) => handleDeleteOrder(e, order.id)}>Delete</button>
                       </div>
                     </div>

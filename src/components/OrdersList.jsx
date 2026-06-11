@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { emailOrderById } from "../utils/orderEmail";
 import { ORDER_STATUS_LABELS } from "../utils/statuses";
 import "../styles/JobsList.css";
 
@@ -182,6 +183,10 @@ export default function OrdersList({ onSelectOrder, suppliers, userId }) {
                   <td className="job-date-cell">{o.delivery_date || "—"}</td>
                   <td className="job-date-cell">{o.job_id ? "Job" : "Standalone"}</td>
                   <td>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => { e.stopPropagation(); emailOrderById(o.id, suppliers); }}
+                    >Email</button>
                     <button className="btn btn-danger btn-sm" onClick={(e) => handleDelete(e, o.id)}>Delete</button>
                   </td>
                 </tr>
